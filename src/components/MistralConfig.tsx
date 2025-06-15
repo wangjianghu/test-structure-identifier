@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Settings, Save, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface MistralConfigProps {
   className?: string;
@@ -39,9 +40,9 @@ export function MistralConfig({ className }: MistralConfigProps) {
     setIsLoading(true);
     
     try {
-      // 验证 Mistral API Key 格式
-      if (mistralApiKey.trim() && !mistralApiKey.startsWith('mistral-') && !mistralApiKey.startsWith('ms-')) {
-        toast.error("Mistral API Key 格式可能不正确，请检查");
+      // 简化 Mistral API Key 格式验证 - 只检查最基本的长度要求
+      if (mistralApiKey.trim() && mistralApiKey.trim().length < 10) {
+        toast.error("Mistral API Key 长度过短，请检查");
         setIsLoading(false);
         return;
       }
@@ -72,8 +73,8 @@ export function MistralConfig({ className }: MistralConfigProps) {
                       (!!localStorage.getItem('alicloud_access_key') && !!localStorage.getItem('alicloud_secret_key'));
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
         <Button 
           variant={isConfigured ? "default" : "outline"} 
           size="sm" 
@@ -87,85 +88,43 @@ export function MistralConfig({ className }: MistralConfigProps) {
             </span>
           )}
         </Button>
-      </DialogTrigger>
+      </PopoverTrigger>
       
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            配置 OCR 增强服务
-          </DialogTitle>
-          <DialogDescription>
-            配置高精度的图像识别服务，提升试题识别准确率。支持 Mistral.ai 和阿里云 OCR。
-          </DialogDescription>
-        </DialogHeader>
-        
-        <Tabs defaultValue="mistral" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="mistral">Mistral.ai</TabsTrigger>
-            <TabsTrigger value="alicloud">阿里云 OCR</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="mistral" className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="mistralApiKey">Mistral.ai API Key</Label>
-              <div className="relative">
-                <Input
-                  id="mistralApiKey"
-                  type={showMistralKey ? "text" : "password"}
-                  placeholder="输入您的 Mistral.ai API Key"
-                  value={mistralApiKey}
-                  onChange={(e) => setMistralApiKey(e.target.value)}
-                  className="pr-10"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowMistralKey(!showMistralKey)}
-                >
-                  {showMistralKey ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                在 <a 
-                  href="https://console.mistral.ai/api-keys/" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:underline"
-                >
-                  Mistral.ai 控制台
-                </a> 获取您的 API Key
+      <PopoverContent 
+        className="w-[500px] p-0" 
+        side="bottom" 
+        align="start"
+        sideOffset={4}
+      >
+        <div className="p-6">
+          <div className="space-y-4 mb-6">
+            <div>
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                配置 OCR 增强服务
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                配置高精度的图像识别服务，提升试题识别准确率。支持 Mistral.ai 和阿里云 OCR。
               </p>
             </div>
-            
-            <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
-              <h4 className="text-sm font-medium mb-1">Mistral.ai 优势：</h4>
-              <ul className="text-xs text-muted-foreground space-y-1">
-                <li>• 高精度识别中文和数学公式</li>
-                <li>• 支持复杂的表格和图表识别</li>
-                <li>• 优化的教育内容处理能力</li>
-                <li>• 更好的手写文字识别效果</li>
-              </ul>
-            </div>
-          </TabsContent>
+          </div>
           
-          <TabsContent value="alicloud" className="space-y-4">
-            <div className="space-y-4">
+          <Tabs defaultValue="mistral" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="mistral">Mistral.ai</TabsTrigger>
+              <TabsTrigger value="alicloud">阿里云 OCR</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="mistral" className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="alicloudAccessKey">AccessKey ID</Label>
+                <Label htmlFor="mistralApiKey">Mistral.ai API Key</Label>
                 <div className="relative">
                   <Input
-                    id="alicloudAccessKey"
-                    type={showAlicloudAccess ? "text" : "password"}
-                    placeholder="输入阿里云 AccessKey ID"
-                    value={alicloudAccessKey}
-                    onChange={(e) => setAlicloudAccessKey(e.target.value)}
+                    id="mistralApiKey"
+                    type={showMistralKey ? "text" : "password"}
+                    placeholder="输入您的 Mistral.ai API Key"
+                    value={mistralApiKey}
+                    onChange={(e) => setMistralApiKey(e.target.value)}
                     className="pr-10"
                   />
                   <Button
@@ -173,79 +132,135 @@ export function MistralConfig({ className }: MistralConfigProps) {
                     variant="ghost"
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowAlicloudAccess(!showAlicloudAccess)}
+                    onClick={() => setShowMistralKey(!showMistralKey)}
                   >
-                    {showAlicloudAccess ? (
+                    {showMistralKey ? (
                       <EyeOff className="h-4 w-4" />
                     ) : (
                       <Eye className="h-4 w-4" />
                     )}
                   </Button>
                 </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="alicloudSecretKey">AccessKey Secret</Label>
-                <div className="relative">
-                  <Input
-                    id="alicloudSecretKey"
-                    type={showAlicloudSecret ? "text" : "password"}
-                    placeholder="输入阿里云 AccessKey Secret"
-                    value={alicloudSecretKey}
-                    onChange={(e) => setAlicloudSecretKey(e.target.value)}
-                    className="pr-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowAlicloudSecret(!showAlicloudSecret)}
+                <p className="text-xs text-muted-foreground">
+                  在 <a 
+                    href="https://console.mistral.ai/api-keys/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline"
                   >
-                    {showAlicloudSecret ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
+                    Mistral.ai 控制台
+                  </a> 获取您的 API Key
+                </p>
               </div>
               
-              <p className="text-xs text-muted-foreground">
-                在 <a 
-                  href="https://ram.console.aliyun.com/manage/ak" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:underline"
-                >
-                  阿里云访问控制台
-                </a> 获取您的 AccessKey
-              </p>
-            </div>
+              <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
+                <h4 className="text-sm font-medium mb-1">Mistral.ai 优势：</h4>
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  <li>• 高精度识别中文和数学公式</li>
+                  <li>• 支持复杂的表格和图表识别</li>
+                  <li>• 优化的教育内容处理能力</li>
+                  <li>• 更好的手写文字识别效果</li>
+                </ul>
+              </div>
+            </TabsContent>
             
-            <div className="bg-orange-50 dark:bg-orange-950/20 p-3 rounded-lg">
-              <h4 className="text-sm font-medium mb-1">阿里云 OCR 优势：</h4>
-              <ul className="text-xs text-muted-foreground space-y-1">
-                <li>• 专业的中文文字识别能力</li>
-                <li>• 支持印刷体和手写体识别</li>
-                <li>• 高准确率的表格和版面分析</li>
-                <li>• 稳定可靠的云端服务</li>
-              </ul>
-            </div>
-          </TabsContent>
-        </Tabs>
-        
-        <DialogFooter>
-          <Button 
-            onClick={handleSave} 
-            disabled={isLoading || (!mistralApiKey.trim() && (!alicloudAccessKey.trim() || !alicloudSecretKey.trim()))}
-            className="w-full"
-          >
-            <Save className="mr-2 h-4 w-4" />
-            {isLoading ? "保存中..." : "保存配置"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            <TabsContent value="alicloud" className="space-y-4">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="alicloudAccessKey">AccessKey ID</Label>
+                  <div className="relative">
+                    <Input
+                      id="alicloudAccessKey"
+                      type={showAlicloudAccess ? "text" : "password"}
+                      placeholder="输入阿里云 AccessKey ID"
+                      value={alicloudAccessKey}
+                      onChange={(e) => setAlicloudAccessKey(e.target.value)}
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowAlicloudAccess(!showAlicloudAccess)}
+                    >
+                      {showAlicloudAccess ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="alicloudSecretKey">AccessKey Secret</Label>
+                  <div className="relative">
+                    <Input
+                      id="alicloudSecretKey"
+                      type={showAlicloudSecret ? "text" : "password"}
+                      placeholder="输入阿里云 AccessKey Secret"
+                      value={alicloudSecretKey}
+                      onChange={(e) => setAlicloudSecretKey(e.target.value)}
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowAlicloudSecret(!showAlicloudSecret)}
+                    >
+                      {showAlicloudSecret ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                
+                <p className="text-xs text-muted-foreground">
+                  在 <a 
+                    href="https://ram.console.aliyun.com/manage/ak" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline"
+                  >
+                    阿里云访问控制台
+                  </a> 获取您的 AccessKey
+                </p>
+              </div>
+              
+              <div className="bg-orange-50 dark:bg-orange-950/20 p-3 rounded-lg">
+                <h4 className="text-sm font-medium mb-1">阿里云 OCR 优势：</h4>
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  <li>• 专业的中文文字识别能力</li>
+                  <li>• 支持印刷体和手写体识别</li>
+                  <li>• 高准确率的表格和版面分析</li>
+                  <li>• 稳定可靠的云端服务</li>
+                </ul>
+              </div>
+            </TabsContent>
+          </Tabs>
+          
+          <div className="flex justify-end gap-2 mt-6">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsOpen(false)}
+            >
+              取消
+            </Button>
+            <Button 
+              onClick={handleSave} 
+              disabled={isLoading || (!mistralApiKey.trim() && (!alicloudAccessKey.trim() || !alicloudSecretKey.trim()))}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {isLoading ? "保存中..." : "保存配置"}
+            </Button>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
