@@ -2,9 +2,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Github, Zap } from "lucide-react";
+import { Github, Zap, Image } from "lucide-react";
 import { parseQuestion, ParsedQuestion } from "@/lib/parser";
 import { AnalysisResult } from "@/components/AnalysisResult";
+import { createWorker } from "tesseract.js";
+import { toast } from "sonner";
 
 const exampleText = "4.已知集合M={-2,-1,0,1,2},N={x|x²-x-2≤0},则M∩(CRN)=(  )\nA.{-2,-1}\nB.{-2}\nC.{-1,0}\nD.{0}";
 
@@ -12,6 +14,7 @@ const Index = () => {
   const [inputText, setInputText] = useState(exampleText);
   const [analysisResult, setAnalysisResult] = useState<ParsedQuestion | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isOcrLoading, setIsOcrLoading] = useState(false);
 
   const handleAnalyze = () => {
     setIsLoading(true);
@@ -21,6 +24,33 @@ const Index = () => {
       setAnalysisResult(result);
       setIsLoading(false);
     }, 500);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) {
+      return;
+    }
+    const file = e.target.files[0];
+    setIsOcrLoading(true);
+    setAnalysisResult(null);
+    toast.info("开始识别图片中的文字...", {
+      description: "这可能需要一些时间，请稍候。",
+    });
+    try {
+      const worker = await createWorker('chi_sim');
+      const { data: { text } } = await worker.recognize(file);
+      setInputText(text);
+      toast.success("图片识别成功！");
+      await worker.terminate();
+    } catch (err) {
+      console.error(err);
+      toast.error("图片识别失败", {
+        description: "无法从图片中提取文字，请检查图片或稍后重试。",
+      });
+    } finally {
+      setIsOcrLoading(false);
+      e.target.value = ''; // Clear the file input
+    }
   };
 
   return (
@@ -43,7 +73,7 @@ const Index = () => {
             智能试题结构识别
           </h2>
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            粘贴试题文本，即刻获得结构化分析。目前支持数学等学科的基础选择题与主观题识别。
+            粘贴试题文本或上传图片，即刻获得结构化分析。目前支持数学等学科的基础选择题与主观题识别。
           </p>
         </div>
 
@@ -51,13 +81,28 @@ const Index = () => {
           <Textarea
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="在此处粘贴试题文本..."
+            placeholder="在此处粘贴试题文本，或从图片识别..."
             className="min-h-[150px] text-base shadow-sm"
           />
-          <Button onClick={handleAnalyze} disabled={isLoading || !inputText} className="w-full">
-            <Zap className="mr-2 h-4 w-4" />
-            {isLoading ? "分析中..." : "开始分析"}
-          </Button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <Button onClick={handleAnalyze} disabled={isLoading || isOcrLoading || !inputText} className="w-full">
+              <Zap className="mr-2 h-4 w-4" />
+              {isLoading ? "分析中..." : "开始分析"}
+            </Button>
+            <Button asChild variant="outline" disabled={isOcrLoading} className="cursor-pointer">
+              <label htmlFor="file-upload" className="w-full flex items-center justify-center">
+                {isOcrLoading ? (
+                  "识别中..."
+                ) : (
+                  <>
+                    <Image className="mr-2 h-4 w-4" />
+                    从图片识别
+                  </>
+                )}
+                <input id="file-upload" type="file" className="sr-only" onChange={handleImageUpload} accept="image/*" disabled={isOcrLoading} />
+              </label>
+            </Button>
+          </div>
         </div>
 
         <div className="mt-8 w-full flex justify-center">
