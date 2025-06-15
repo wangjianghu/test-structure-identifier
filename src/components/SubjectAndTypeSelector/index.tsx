@@ -100,7 +100,7 @@ export function SubjectAndTypeSelector({
 
   return (
     <Card className="mb-6">
-      <CardContent className="p-4">
+      <CardContent className="p-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 items-start">
           <SubjectSelector
             selectedSubject={selectedSubject}

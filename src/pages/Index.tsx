@@ -54,15 +54,20 @@ const Index = () => {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  // 修复点击遮罩层关闭历史记录面板的处理
-  const handleOverlayClick = useCallback((e: React.MouseEvent) => {
-    // 确保点击的是遮罩层本身，而不是其子元素
-    if (e.target === e.currentTarget) {
-      setIsHistoryOpen(false);
-    }
+  // 修复遮罩层点击处理逻辑
+  const handleOverlayClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('遮罩层被点击，关闭历史面板');
+    setIsHistoryOpen(false);
   }, []);
 
-  // 添加 fallback 方法
+  // 添加历史面板切换处理
+  const handleHistoryToggle = useCallback(() => {
+    console.log('切换历史面板状态:', !isHistoryOpen);
+    setIsHistoryOpen(!isHistoryOpen);
+  }, [isHistoryOpen]);
+
   const fallbackToBuiltinOCR = async (file: File, results: any[], imageHistoryItems: any[]) => {
     try {
       const enhancedOCR = new EnhancedOCR();
@@ -248,12 +253,20 @@ const Index = () => {
     setOcrResults(prev => prev.filter((_, i) => i !== index));
   }, []);
 
-  const handleClear = useCallback(() => {
+  const handleClear = useCallback((clearOptimizationParams = false) => {
     setInputText("");
     setUploadedImages([]);
     setOcrResults([]);
     setAnalysisResult(null);
-    toast.success("已清空输入内容");
+    
+    // 如果选择清空优化参数
+    if (clearOptimizationParams) {
+      setSelectedSubject("");
+      setQuestionTypeExample("");
+      toast.success("已清空输入内容和识别优化参数");
+    } else {
+      toast.success("已清空输入内容");
+    }
   }, []);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -296,7 +309,7 @@ const Index = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+            onClick={handleHistoryToggle}
             className="lg:hidden"
           >
             {isHistoryOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
@@ -313,7 +326,7 @@ const Index = () => {
       </header>
 
       <main className="flex-1 overflow-hidden">
-        <div className="h-full flex">
+        <div className="h-full flex relative">
           {/* 左侧：输入和分析区域 */}
           <div className="flex-1 flex flex-col overflow-y-auto">
             <div className="flex-1 p-4 lg:p-6">
@@ -399,16 +412,12 @@ const Index = () => {
             <>
               {/* 遮罩层，仅在小屏幕且历史记录面板打开时显示 */}
               <div 
-                className="fixed inset-0 bg-black/50 z-10 lg:hidden"
+                className="fixed inset-0 bg-black/50 z-30 lg:hidden"
                 onClick={handleOverlayClick}
               />
               
-              <div className={`
-                w-full absolute inset-y-0 right-0 z-20 bg-background border-l 
-                lg:relative lg:w-80 lg:z-auto
-                transition-transform duration-300 ease-in-out
-              `}>
-                <div className="h-full bg-background/95 backdrop-blur-sm lg:bg-background/50">
+              <div className="w-full fixed inset-y-0 right-0 z-40 bg-background border-l lg:relative lg:w-80 lg:z-auto lg:fixed">
+                <div className="h-full bg-background">
                   <OCRHistory
                     history={history}
                     onRemoveItem={removeItem}

@@ -2,9 +2,10 @@
 import * as React from "react";
 import { Textarea, type TextareaProps } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Image as ImageIcon, Zap, X, Eye, Trash2 } from "lucide-react";
+import { Image as ImageIcon, Zap, X, Eye, Trash2, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ImageViewDialog } from "./ImageViewDialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface QuestionInputProps extends Omit<TextareaProps, 'className'> {
   onImagesUpload: (files: File[]) => void;
@@ -14,7 +15,7 @@ interface QuestionInputProps extends Omit<TextareaProps, 'className'> {
   className?: string;
   onAnalyze: () => void;
   isAnalyzing: boolean;
-  onClear?: () => void;
+  onClear?: (clearOptimizationParams?: boolean) => void;
 }
 
 export function QuestionInput({ 
@@ -30,6 +31,7 @@ export function QuestionInput({
   ...props 
 }: QuestionInputProps) {
   const [imagePreviews, setImagePreviews] = React.useState<string[]>([]);
+  const [clearOptimizationParams, setClearOptimizationParams] = React.useState(false);
 
   React.useEffect(() => {
     // 创建图片预览URLs
@@ -79,7 +81,7 @@ export function QuestionInput({
 
   const handleClear = () => {
     if (onClear) {
-      onClear();
+      onClear(clearOptimizationParams);
     }
   };
 
@@ -173,7 +175,23 @@ export function QuestionInput({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {/* 清空选项 */}
+          <div className="flex items-center gap-2">
+            <Checkbox 
+              id="clear-optimization"
+              checked={clearOptimizationParams}
+              onCheckedChange={(checked) => setClearOptimizationParams(!!checked)}
+              disabled={isAnalyzing || isOcrLoading}
+            />
+            <label 
+              htmlFor="clear-optimization" 
+              className="text-xs text-muted-foreground cursor-pointer select-none"
+            >
+              同步清空识别优化参数
+            </label>
+          </div>
+
           {/* 清空按钮 */}
           <Button 
             onClick={handleClear} 
@@ -181,7 +199,7 @@ export function QuestionInput({
             size="sm"
             variant="outline"
           >
-            <Trash2 className="mr-2 h-4 w-4" />
+            <RotateCcw className="mr-2 h-4 w-4" />
             清空
           </Button>
 
