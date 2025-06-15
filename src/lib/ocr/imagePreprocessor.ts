@@ -7,109 +7,107 @@ export class ImagePreprocessor {
       const img = new Image();
       
       img.onload = () => {
-        // 适度放大 - 避免过度缩放导致失真
-        const scale = Math.min(2, Math.max(1.5, 1200 / Math.max(img.width, img.height)));
+        // 保守的缩放策略 - 确保图像足够清晰但不过度放大
+        const maxSize = 1600;
+        const scale = Math.min(maxSize / img.width, maxSize / img.height, 2.5);
         canvas.width = img.width * scale;
         canvas.height = img.height * scale;
         
+        // 高质量渲染
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         
         let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        preprocessingSteps.push(`智能缩放 ${scale.toFixed(2)}x，保持图像质量`);
+        preprocessingSteps.push(`智能缩放 ${scale.toFixed(2)}x (${canvas.width}x${canvas.height})`);
         
-        // 1. 温和的对比度增强
-        imageData = this.gentleContrastEnhancement(imageData, preprocessingSteps);
+        // 1. 轻度对比度增强
+        imageData = this.lightContrastEnhancement(imageData, preprocessingSteps);
         
-        // 2. 保守的去噪处理
-        imageData = this.conservativeDenoising(imageData, preprocessingSteps);
+        // 2. 保守去噪
+        imageData = this.lightDenoising(imageData, preprocessingSteps);
         
-        // 3. 智能二值化 - 保留更多细节
-        imageData = this.smartBinarization(imageData, preprocessingSteps);
+        // 3. 自适应阈值处理
+        imageData = this.adaptiveThresholding(imageData, preprocessingSteps);
         
         ctx.putImageData(imageData, 0, 0);
         canvas.toBlob((blob) => {
           if (blob) resolve(blob);
-        }, 'image/png');
+        }, 'image/png', 0.95);
       };
       
       img.src = URL.createObjectURL(file);
     });
   }
 
-  private static gentleContrastEnhancement(imageData: ImageData, preprocessingSteps: string[]): ImageData {
+  private static lightContrastEnhancement(imageData: ImageData, preprocessingSteps: string[]): ImageData {
     const data = imageData.data;
-    const contrast = 1.1; // 温和的对比度增强
-    const brightness = 5;
+    const factor = 1.15; // 轻度增强
+    const offset = 8;
     
     for (let i = 0; i < data.length; i += 4) {
-      // 转换为灰度
       const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-      
-      // 应用温和的对比度和亮度调整
-      const enhanced = Math.min(255, Math.max(0, (gray - 128) * contrast + 128 + brightness));
-      
+      const enhanced = Math.min(255, Math.max(0, gray * factor + offset));
       data[i] = data[i + 1] = data[i + 2] = enhanced;
     }
     
-    preprocessingSteps.push("应用温和对比度增强");
+    preprocessingSteps.push("轻度对比度增强");
     return imageData;
   }
 
-  private static conservativeDenoising(imageData: ImageData, preprocessingSteps: string[]): ImageData {
+  private static lightDenoising(imageData: ImageData, preprocessingSteps: string[]): ImageData {
     const data = imageData.data;
     const width = imageData.width;
     const height = imageData.height;
     const newData = new Uint8ClampedArray(data);
     
-    // 简单的3x3中值滤波
+    // 简单的均值滤波
     for (let y = 1; y < height - 1; y++) {
       for (let x = 1; x < width - 1; x++) {
-        const pixels = [];
+        let sum = 0;
+        let count = 0;
+        
         for (let dy = -1; dy <= 1; dy++) {
           for (let dx = -1; dx <= 1; dx++) {
             const idx = ((y + dy) * width + (x + dx)) * 4;
-            pixels.push(data[idx]);
+            sum += data[idx];
+            count++;
           }
         }
-        pixels.sort((a, b) => a - b);
-        const median = pixels[4]; // 中位数
         
+        const avg = sum / count;
         const idx = (y * width + x) * 4;
-        newData[idx] = newData[idx + 1] = newData[idx + 2] = median;
+        newData[idx] = newData[idx + 1] = newData[idx + 2] = avg;
       }
     }
     
     imageData.data.set(newData);
-    preprocessingSteps.push("保守降噪处理");
+    preprocessingSteps.push("轻度降噪处理");
     return imageData;
   }
 
-  private static smartBinarization(imageData: ImageData, preprocessingSteps: string[]): ImageData {
+  private static adaptiveThresholding(imageData: ImageData, preprocessingSteps: string[]): ImageData {
     const data = imageData.data;
     const width = imageData.width;
     const height = imageData.height;
     
-    // 计算全局阈值
-    let sum = 0;
-    let count = 0;
+    // 计算全局平均值
+    let globalSum = 0;
     for (let i = 0; i < data.length; i += 4) {
-      sum += data[i];
-      count++;
+      globalSum += data[i];
     }
-    const globalThreshold = sum / count;
+    const globalAvg = globalSum / (width * height);
     
-    // 自适应二值化，但保留更多细节
+    // 自适应阈值
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
         const gray = data[idx];
         
-        // 计算局部阈值
+        // 局部窗口计算
         let localSum = 0;
         let localCount = 0;
-        const windowSize = 8; // 较小的窗口
+        const windowSize = 12;
         
         for (let dy = -windowSize; dy <= windowSize; dy++) {
           for (let dx = -windowSize; dx <= windowSize; dx++) {
@@ -123,15 +121,15 @@ export class ImagePreprocessor {
           }
         }
         
-        const localThreshold = localCount > 0 ? localSum / localCount - 3 : globalThreshold;
-        const threshold = (localThreshold + globalThreshold) / 2; // 混合阈值
+        const localAvg = localCount > 0 ? localSum / localCount : globalAvg;
+        const threshold = localAvg * 0.88; // 稍微降低阈值以保留更多细节
         
         const binaryValue = gray > threshold ? 255 : 0;
         data[idx] = data[idx + 1] = data[idx + 2] = binaryValue;
       }
     }
     
-    preprocessingSteps.push("智能自适应二值化");
+    preprocessingSteps.push("自适应阈值二值化");
     return imageData;
   }
 }
