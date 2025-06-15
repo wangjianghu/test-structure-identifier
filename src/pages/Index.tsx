@@ -270,8 +270,8 @@ const Index = () => {
 
   return (
     <div className="h-screen w-full bg-background bg-grid text-foreground flex flex-col">
-      <header className="w-full flex justify-between items-center p-4 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-        <h1 className="text-xl font-bold text-primary">智能试题结构识别</h1>
+      <header className="w-full flex justify-between items-center p-6 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
+        <h1 className="text-2xl font-bold text-primary">智能试题结构识别</h1>
         <a 
           href="https://github.com/lovable-dev/c5fe2474-d81b-4c79-850f-89431dfc1704" 
           target="_blank" 
@@ -285,86 +285,92 @@ const Index = () => {
       <main className="flex-1 overflow-hidden">
         <div className="h-full flex">
           {/* 左侧：输入和分析区域 */}
-          <div className="flex-1 flex flex-col p-4 overflow-y-auto">
-            <div className="text-left mb-6">
-              <p className="text-base text-muted-foreground">
+          <div className="flex-1 flex flex-col overflow-y-auto">
+            {/* 顶部描述区域 */}
+            <div className="px-6 py-4 text-center bg-slate-50/50 dark:bg-slate-900/20">
+              <p className="text-lg text-muted-foreground max-w-4xl mx-auto">
                 粘贴试题文本或上传图片，即刻获得结构化分析。支持数学、物理、化学、语文、英语等学科的多种题型识别。
               </p>
             </div>
 
-            <div className="flex-1 space-y-4 max-w-4xl mx-auto w-full">
-              {/* 学科选择和OCR增强配置在同一行 */}
-              <div className="flex items-end gap-4">
-                <div className="flex-1">
-                  <SubjectAndTypeSelector
-                    selectedSubject={selectedSubject}
-                    onSubjectChange={setSelectedSubject}
-                    questionTypeExample={questionTypeExample}
-                    onQuestionTypeExampleChange={setQuestionTypeExample}
+            <div className="flex-1 p-6">
+              <div className="max-w-5xl mx-auto space-y-6">
+                {/* 学科选择和OCR增强配置区域 */}
+                <div className="flex items-end gap-4 mb-6">
+                  <div className="flex-1">
+                    <SubjectAndTypeSelector
+                      selectedSubject={selectedSubject}
+                      onSubjectChange={setSelectedSubject}
+                      questionTypeExample={questionTypeExample}
+                      onQuestionTypeExampleChange={setQuestionTypeExample}
+                    />
+                  </div>
+                  <MistralConfig />
+                </div>
+
+                {/* 输入区域 */}
+                <div className="space-y-4">
+                  <QuestionInput
+                    value={inputText}
+                    onChange={handleTextChange}
+                    onImagesUpload={handleImagesUpload}
+                    uploadedImages={uploadedImages}
+                    onRemoveImage={handleRemoveImage}
+                    isOcrLoading={isOcrLoading}
+                    disabled={isOcrLoading || isLoading}
+                    onAnalyze={handleAnalyze}
+                    isAnalyzing={isLoading}
+                    onClear={handleClear}
                   />
                 </div>
-                <MistralConfig />
+                
+                {/* OCR 处理详情显示 */}
+                {ocrResults.length > 0 && (
+                  <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border">
+                    <h3 className="font-semibold mb-2 text-sm">图片 OCR 处理详情</h3>
+                    <div className="space-y-3">
+                      {ocrResults.map((result, index) => {
+                        const isMistral = 'classification' in result && !('features' in result.classification);
+                        const isAlicloud = 'classification' in result && 'processingTime' in result && !isMistral;
+                        const engineName = isMistral ? 'Mistral.ai' : isAlicloud ? '阿里云 OCR' : '内置OCR';
+                        
+                        return (
+                          <div key={index} className="text-xs space-y-1 text-muted-foreground border-l-2 border-blue-200 pl-3">
+                            <div className="font-medium">图片 {index + 1} ({engineName}):</div>
+                            <div>OCR 置信度: {result.confidence.toFixed(1)}%</div>
+                            <div>处理时间: {result.processingTime}ms</div>
+                            <div>检测学科: {result.classification.subject}</div>
+                            <div>题型: {result.classification.questionType}</div>
+                            <div>分类置信度: {(result.classification.confidence * 100).toFixed(1)}%</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* 分析结果显示 */}
+                {analysisResult && (
+                  <div className="w-full">
+                    <AnalysisResult result={analysisResult} />
+                  </div>
+                )}
+
+                {/* 题型示例统计信息 */}
+                {questionTypeExamples.length > 0 && (
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border">
+                    <h3 className="font-semibold mb-2 text-sm">题型结构收集统计</h3>
+                    <div className="text-xs text-muted-foreground">
+                      已收集 {questionTypeExamples.length} 种题型结构示例，将用于提升识别准确性
+                    </div>
+                  </div>
+                )}
               </div>
-
-              <QuestionInput
-                value={inputText}
-                onChange={handleTextChange}
-                onImagesUpload={handleImagesUpload}
-                uploadedImages={uploadedImages}
-                onRemoveImage={handleRemoveImage}
-                isOcrLoading={isOcrLoading}
-                disabled={isOcrLoading || isLoading}
-                onAnalyze={handleAnalyze}
-                isAnalyzing={isLoading}
-                onClear={handleClear}
-              />
-              
-              {/* OCR 处理详情显示 */}
-              {ocrResults.length > 0 && (
-                <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border">
-                  <h3 className="font-semibold mb-2 text-sm">图片 OCR 处理详情</h3>
-                  <div className="space-y-3">
-                    {ocrResults.map((result, index) => {
-                      const isMistral = 'classification' in result && !('features' in result.classification);
-                      const isAlicloud = 'classification' in result && 'processingTime' in result && !isMistral;
-                      const engineName = isMistral ? 'Mistral.ai' : isAlicloud ? '阿里云 OCR' : '内置OCR';
-                      
-                      return (
-                        <div key={index} className="text-xs space-y-1 text-muted-foreground border-l-2 border-blue-200 pl-3">
-                          <div className="font-medium">图片 {index + 1} ({engineName}):</div>
-                          <div>OCR 置信度: {result.confidence.toFixed(1)}%</div>
-                          <div>处理时间: {result.processingTime}ms</div>
-                          <div>检测学科: {result.classification.subject}</div>
-                          <div>题型: {result.classification.questionType}</div>
-                          <div>分类置信度: {(result.classification.confidence * 100).toFixed(1)}%</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* 分析结果显示 */}
-              {analysisResult && (
-                <div className="w-full">
-                  <AnalysisResult result={analysisResult} />
-                </div>
-              )}
-
-              {/* 题型示例统计信息 */}
-              {questionTypeExamples.length > 0 && (
-                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border">
-                  <h3 className="font-semibold mb-2 text-sm">题型结构收集统计</h3>
-                  <div className="text-xs text-muted-foreground">
-                    已收集 {questionTypeExamples.length} 种题型结构示例，将用于提升识别准确性
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
           {/* 右侧：历史记录 */}
-          <div className="w-96 border-l bg-background/50">
+          <div className="w-80 border-l bg-background/50">
             <OCRHistory
               history={history}
               onRemoveItem={removeItem}
