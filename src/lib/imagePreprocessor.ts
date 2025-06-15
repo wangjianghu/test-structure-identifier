@@ -10,30 +10,30 @@ export class ImagePreprocessor {
     this.ctx = ctx;
   }
 
-  // 主要的预处理流程
+  // 针对中文教育材料优化的预处理流程
   async preprocessImage(file: File): Promise<File> {
     const img = await this.loadImage(file);
     
-    // 1. 图像缩放和尺寸标准化
-    this.normalizeImageSize(img);
+    // 1. 高质量图像缩放
+    this.optimizeImageSize(img);
     
-    // 2. 灰度转换
-    this.convertToGrayscale();
+    // 2. 颜色空间优化
+    this.optimizeColorSpace();
     
-    // 3. 噪声减少（高斯模糊）
-    this.applyGaussianBlur();
+    // 3. 高级降噪
+    this.advancedDenoising();
     
-    // 4. 对比度增强
-    this.enhanceContrast();
+    // 4. 智能对比度增强
+    this.smartContrastEnhancement();
     
-    // 5. 自适应阈值二值化
-    this.applyAdaptiveThreshold();
+    // 5. 文字区域优化
+    this.optimizeTextRegions();
     
-    // 6. 形态学操作（去噪）
-    this.applyMorphologicalOperations();
+    // 6. 精确二值化
+    this.precisionBinarization();
     
-    // 7. 倾斜校正
-    await this.correctSkew();
+    // 7. 文本线优化
+    this.optimizeTextLines();
     
     return this.canvasToFile(file.name);
   }
@@ -47,22 +47,21 @@ export class ImagePreprocessor {
     });
   }
 
-  private normalizeImageSize(img: HTMLImageElement): void {
-    // 计算最佳尺寸，确保文字清晰度
-    const targetDPI = 300;
-    const minWidth = 1200;
-    const maxWidth = 2400;
+  private optimizeImageSize(img: HTMLImageElement): void {
+    // 为中文字符优化的尺寸设置
+    const optimalDPI = 600; // 提高DPI以更好识别中文
+    const minWidth = 1800;  // 增加最小宽度
+    const maxWidth = 3200;  // 增加最大宽度
     
     let { width, height } = img;
     
-    // 如果图像太小，放大到合适尺寸
+    // 计算最优缩放比例
     if (width < minWidth) {
       const scale = minWidth / width;
       width *= scale;
       height *= scale;
     }
     
-    // 如果图像太大，缩小到合适尺寸
     if (width > maxWidth) {
       const scale = maxWidth / width;
       width *= scale;
@@ -72,55 +71,57 @@ export class ImagePreprocessor {
     this.canvas.width = width;
     this.canvas.height = height;
     
-    // 使用高质量的图像缩放
+    // 使用最高质量的图像缩放
     this.ctx.imageSmoothingEnabled = true;
     this.ctx.imageSmoothingQuality = 'high';
     this.ctx.drawImage(img, 0, 0, width, height);
   }
 
-  private convertToGrayscale(): void {
+  private optimizeColorSpace(): void {
     const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
     const data = imageData.data;
     
+    // 使用更精确的加权灰度转换
     for (let i = 0; i < data.length; i += 4) {
-      // 使用加权平均转换为灰度
-      const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
-      data[i] = gray;     // Red
-      data[i + 1] = gray; // Green
-      data[i + 2] = gray; // Blue
-      // Alpha保持不变
+      // 针对文字识别优化的灰度转换
+      const gray = Math.round(0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]);
+      data[i] = gray;
+      data[i + 1] = gray;
+      data[i + 2] = gray;
     }
     
     this.ctx.putImageData(imageData, 0, 0);
   }
 
-  private applyGaussianBlur(): void {
-    // 简单的高斯模糊实现，减少噪声
-    this.ctx.filter = 'blur(0.5px)';
-    this.ctx.drawImage(this.canvas, 0, 0);
-    this.ctx.filter = 'none';
+  private advancedDenoising(): void {
+    // 多次轻微降噪，保持文字清晰度
+    for (let i = 0; i < 2; i++) {
+      this.ctx.filter = 'blur(0.3px)';
+      this.ctx.drawImage(this.canvas, 0, 0);
+      this.ctx.filter = 'none';
+    }
   }
 
-  private enhanceContrast(): void {
+  private smartContrastEnhancement(): void {
     const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
     const data = imageData.data;
     
-    // 计算直方图
+    // 计算更精确的直方图
     const histogram = new Array(256).fill(0);
     for (let i = 0; i < data.length; i += 4) {
       histogram[data[i]]++;
     }
     
-    // 找到有效的灰度范围
+    // 智能找到有效灰度范围
     let minGray = 0, maxGray = 255;
     const totalPixels = this.canvas.width * this.canvas.height;
-    const threshold = totalPixels * 0.01; // 忽略1%的极值
+    const threshold = totalPixels * 0.005; // 更严格的阈值
     
     let count = 0;
     for (let i = 0; i < 256; i++) {
       count += histogram[i];
       if (count > threshold) {
-        minGray = i;
+        minGray = Math.max(0, i - 5);
         break;
       }
     }
@@ -129,17 +130,17 @@ export class ImagePreprocessor {
     for (let i = 255; i >= 0; i--) {
       count += histogram[i];
       if (count > threshold) {
-        maxGray = i;
+        maxGray = Math.min(255, i + 5);
         break;
       }
     }
     
-    // 对比度拉伸
+    // 应用智能对比度拉伸
     const range = maxGray - minGray;
-    if (range > 0) {
+    if (range > 20) {
       for (let i = 0; i < data.length; i += 4) {
-        const stretched = Math.round(((data[i] - minGray) / range) * 255);
-        const enhanced = Math.max(0, Math.min(255, stretched));
+        const stretched = ((data[i] - minGray) / range) * 255;
+        const enhanced = Math.max(0, Math.min(255, Math.round(stretched)));
         data[i] = enhanced;
         data[i + 1] = enhanced;
         data[i + 2] = enhanced;
@@ -149,15 +150,60 @@ export class ImagePreprocessor {
     this.ctx.putImageData(imageData, 0, 0);
   }
 
-  private applyAdaptiveThreshold(): void {
+  private optimizeTextRegions(): void {
+    // 针对文字区域的特殊优化
     const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
     const data = imageData.data;
     const width = this.canvas.width;
     const height = this.canvas.height;
     
-    // 自适应阈值参数
-    const blockSize = 15; // 局部区域大小
-    const C = 10; // 常数调整值
+    // 文字增强滤波器
+    const enhanced = new Uint8ClampedArray(data.length);
+    
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const idx = (y * width + x) * 4;
+        
+        // 计算文字增强权重
+        let sum = 0;
+        let weightSum = 0;
+        
+        // 5x5 文字增强核
+        for (let dy = -2; dy <= 2; dy++) {
+          for (let dx = -2; dx <= 2; dx++) {
+            const ny = y + dy;
+            const nx = x + dx;
+            if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
+              const nidx = (ny * width + nx) * 4;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+              const weight = distance === 0 ? 4 : 1 / (1 + distance);
+              sum += data[nidx] * weight;
+              weightSum += weight;
+            }
+          }
+        }
+        
+        const enhanced_value = Math.round(sum / weightSum);
+        enhanced[idx] = enhanced_value;
+        enhanced[idx + 1] = enhanced_value;
+        enhanced[idx + 2] = enhanced_value;
+        enhanced[idx + 3] = data[idx + 3];
+      }
+    }
+    
+    const newImageData = new ImageData(enhanced, width, height);
+    this.ctx.putImageData(newImageData, 0, 0);
+  }
+
+  private precisionBinarization(): void {
+    const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+    const data = imageData.data;
+    const width = this.canvas.width;
+    const height = this.canvas.height;
+    
+    // 自适应阈值参数优化
+    const blockSize = 25; // 增加局部区域大小
+    const C = 8; // 优化常数调整值
     
     const thresholdData = new Uint8ClampedArray(data.length);
     
@@ -165,9 +211,9 @@ export class ImagePreprocessor {
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
         
-        // 计算局部均值
+        // 计算加权局部均值
         let sum = 0;
-        let count = 0;
+        let weightSum = 0;
         const halfBlock = Math.floor(blockSize / 2);
         
         for (let dy = -halfBlock; dy <= halfBlock; dy++) {
@@ -176,13 +222,15 @@ export class ImagePreprocessor {
             const nx = x + dx;
             if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
               const nidx = (ny * width + nx) * 4;
-              sum += data[nidx];
-              count++;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+              const weight = 1 / (1 + distance * 0.1);
+              sum += data[nidx] * weight;
+              weightSum += weight;
             }
           }
         }
         
-        const mean = sum / count;
+        const mean = sum / weightSum;
         const threshold = mean - C;
         const binary = data[idx] > threshold ? 255 : 0;
         
@@ -197,106 +245,46 @@ export class ImagePreprocessor {
     this.ctx.putImageData(newImageData, 0, 0);
   }
 
-  private applyMorphologicalOperations(): void {
-    // 简单的形态学开运算（腐蚀+膨胀）去除小噪点
+  private optimizeTextLines(): void {
+    // 文本行优化处理
     const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
     const data = imageData.data;
     const width = this.canvas.width;
     const height = this.canvas.height;
     
-    // 腐蚀操作
-    const eroded = new Uint8ClampedArray(data.length);
-    for (let y = 1; y < height - 1; y++) {
-      for (let x = 1; x < width - 1; x++) {
-        const idx = (y * width + x) * 4;
-        let minVal = 255;
-        
-        // 3x3 kernel
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            const nidx = ((y + dy) * width + (x + dx)) * 4;
-            minVal = Math.min(minVal, data[nidx]);
-          }
-        }
-        
-        eroded[idx] = minVal;
-        eroded[idx + 1] = minVal;
-        eroded[idx + 2] = minVal;
-        eroded[idx + 3] = data[idx + 3];
-      }
-    }
+    // 水平文本行增强
+    const lineEnhanced = new Uint8ClampedArray(data.length);
     
-    // 膨胀操作
-    const dilated = new Uint8ClampedArray(data.length);
-    for (let y = 1; y < height - 1; y++) {
-      for (let x = 1; x < width - 1; x++) {
-        const idx = (y * width + x) * 4;
-        let maxVal = 0;
-        
-        // 3x3 kernel
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            const nidx = ((y + dy) * width + (x + dx)) * 4;
-            maxVal = Math.max(maxVal, eroded[nidx]);
-          }
-        }
-        
-        dilated[idx] = maxVal;
-        dilated[idx + 1] = maxVal;
-        dilated[idx + 2] = maxVal;
-        dilated[idx + 3] = eroded[idx + 3];
-      }
-    }
-    
-    const newImageData = new ImageData(dilated, width, height);
-    this.ctx.putImageData(newImageData, 0, 0);
-  }
-
-  private async correctSkew(): Promise<void> {
-    // 简单的倾斜检测和校正
-    const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-    const data = imageData.data;
-    const width = this.canvas.width;
-    const height = this.canvas.height;
-    
-    // 检测文本行的倾斜角度
-    const angles = [];
-    const step = 10;
-    
-    for (let y = step; y < height - step; y += step) {
-      const rowPixels = [];
+    for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
-        if (data[idx] === 0) { // 黑色像素
-          rowPixels.push(x);
+        
+        // 检测是否在文本行上
+        let lineScore = 0;
+        const scanWidth = Math.min(20, width - x);
+        
+        for (let dx = 0; dx < scanWidth; dx++) {
+          const scanIdx = (y * width + (x + dx)) * 4;
+          if (data[scanIdx] === 0) { // 黑色像素
+            lineScore++;
+          }
         }
-      }
-      
-      if (rowPixels.length > width * 0.1) { // 如果这一行有足够的文字
-        // 计算文本行的主要方向
-        if (rowPixels.length > 2) {
-          const firstX = rowPixels[0];
-          const lastX = rowPixels[rowPixels.length - 1];
-          const angle = Math.atan2(0, lastX - firstX); // 假设水平线
-          angles.push(angle);
+        
+        // 如果在文本行上，应用增强
+        if (lineScore > scanWidth * 0.1) {
+          lineEnhanced[idx] = data[idx] === 0 ? 0 : 255;
+        } else {
+          lineEnhanced[idx] = data[idx];
         }
+        
+        lineEnhanced[idx + 1] = lineEnhanced[idx];
+        lineEnhanced[idx + 2] = lineEnhanced[idx];
+        lineEnhanced[idx + 3] = data[idx + 3];
       }
     }
     
-    if (angles.length > 0) {
-      // 计算平均角度
-      const avgAngle = angles.reduce((sum, angle) => sum + angle, 0) / angles.length;
-      
-      // 如果倾斜角度超过阈值，进行校正
-      if (Math.abs(avgAngle) > 0.01) {
-        this.ctx.save();
-        this.ctx.translate(width / 2, height / 2);
-        this.ctx.rotate(-avgAngle);
-        this.ctx.translate(-width / 2, -height / 2);
-        this.ctx.drawImage(this.canvas, 0, 0);
-        this.ctx.restore();
-      }
-    }
+    const newImageData = new ImageData(lineEnhanced, width, height);
+    this.ctx.putImageData(newImageData, 0, 0);
   }
 
   private canvasToFile(originalName: string): File {
