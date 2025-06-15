@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Github, Zap, PanelRightOpen, PanelRightClose, ChevronLeft, ChevronRight } from "lucide-react";
+import { Github, Zap, ChevronLeft, ChevronRight } from "lucide-react";
 import { parseQuestion, ParsedQuestion } from "@/lib/parser";
 import { AnalysisResult } from "@/components/AnalysisResult";
 import { toast } from "sonner";
@@ -302,15 +302,6 @@ const Index = () => {
       <header className="w-full flex justify-between items-center p-6 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
         <h1 className="text-xl lg:text-2xl font-bold text-primary">智能识别试题结构</h1>
         <div className="flex items-center gap-4">
-          {/* 历史记录面板切换按钮 */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleHistoryToggle}
-            className="lg:hidden"
-          >
-            {isHistoryOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
-          </Button>
           <a 
             href="https://github.com/wangjianghu/Test-Structure-Identifier" 
             target="_blank" 
@@ -414,17 +405,6 @@ const Index = () => {
               />
               
               <div className="w-full fixed inset-y-0 right-0 z-40 bg-background border-l lg:relative lg:w-80 lg:z-auto lg:fixed">
-                {/* 历史面板切换按钮 - 在面板左侧垂直居中 */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleHistoryToggle}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full z-50 h-12 w-6 rounded-r-none rounded-l-md bg-background border border-r-0 shadow-md hover:bg-muted"
-                  style={{ transform: 'translateY(-50%) translateX(-100%)' }}
-                >
-                  {isHistoryOpen ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-                </Button>
-                
                 <div className="h-full bg-background">
                   <OCRHistory
                     history={history}
@@ -437,18 +417,16 @@ const Index = () => {
             </>
           )}
 
-          {/* 当历史面板关闭时显示的展开按钮 */}
-          {!isHistoryOpen && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleHistoryToggle}
-              className="fixed right-0 top-1/2 -translate-y-1/2 z-50 h-12 w-6 rounded-l-md rounded-r-none bg-background border border-l-0 shadow-md hover:bg-muted"
-              style={{ transform: 'translateY(-50%)' }}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-          )}
+          {/* 展开收起历史面板按钮 - 始终显示 */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleHistoryToggle}
+            className="fixed right-0 top-1/2 -translate-y-1/2 z-50 h-12 w-6 rounded-l-md rounded-r-none bg-background border border-l-0 shadow-md hover:bg-muted"
+            style={{ transform: 'translateY(-50%)' }}
+          >
+            {isHistoryOpen ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </Button>
         </div>
       </main>
     </div>
