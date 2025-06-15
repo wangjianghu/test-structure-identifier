@@ -2,10 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Download, FileText, Image, Type, ChevronLeft, ChevronRight, Clock, Target, Zap } from "lucide-react";
+import { Trash2, Download, FileText, Image, Type, ChevronLeft, ChevronRight, Clock, Target, Zap, Grid, List } from "lucide-react";
 import { HistoryItem } from "@/types/ocrHistory";
 import { format } from "date-fns";
 import { ImageViewDialog } from "./ImageViewDialog";
+import { AnalysisHistoryTable } from "./AnalysisHistoryTable";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -21,6 +22,7 @@ const ITEMS_PER_PAGE = 10;
 
 export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHistoryProps) {
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode<'cards' | 'table'>('cards');
 
   const totalPages = Math.ceil(history.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -119,6 +121,26 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
             分析历史记录 ({history.length})
           </h2>
           <div className="flex gap-2">
+            <div className="flex items-center border rounded-lg">
+              <Button 
+                variant={viewMode === 'cards' ? 'default' : 'ghost'} 
+                size="sm"
+                onClick={() => setViewMode('cards')}
+                className="rounded-r-none"
+              >
+                <Grid className="h-4 w-4 mr-1" />
+                卡片
+              </Button>
+              <Button 
+                variant={viewMode === 'table' ? 'default' : 'ghost'} 
+                size="sm"
+                onClick={() => setViewMode('table')}
+                className="rounded-l-none"
+              >
+                <List className="h-4 w-4 mr-1" />
+                表格
+              </Button>
+            </div>
             <Button variant="outline" size="sm" onClick={handleExportWithSync}>
               <Download className="h-4 w-4 mr-2" />
               导出
@@ -133,121 +155,127 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
       
       <div className="flex-1 overflow-hidden p-4">
         <ScrollArea className="h-full">
-          <div className="space-y-4">
-            {currentItems.map((item) => (
-              <Card key={item.id} className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">
-                      {item.inputType === 'image' ? (
-                        <>
-                          <Image className="h-3 w-3 mr-1" />
-                          图片输入
-                        </>
-                      ) : (
-                        <>
-                          <Type className="h-3 w-3 mr-1" />
-                          文本输入
-                        </>
-                      )}
-                    </Badge>
-                    <span className="text-sm font-mono text-muted-foreground">
-                      #{item.displayId}
-                    </span>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => onRemoveItem(item.id)}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Target className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">分类置信度:</span>
-                      <span>{getClassificationConfidence(item)}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">输入时间:</span>
-                      <span>{format(item.inputTime, 'yyyy-MM-dd HH:mm:ss')}</span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    {item.inputType === 'image' && item.outputTime && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">完成时间:</span>
-                        <span>{format(item.outputTime, 'yyyy-MM-dd HH:mm:ss')}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 text-sm">
-                      <Zap className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">耗时:</span>
-                      <span>
-                        {item.inputType === 'image' 
-                          ? formatProcessingTime(item.inputTime, item.outputTime)
-                          : getProcessingTimeForText(item)
-                        }
+          {viewMode === 'table' ? (
+            <AnalysisHistoryTable 
+              history={currentItems} 
+              onRemoveItem={onRemoveItem}
+            />
+          ) : (
+            <div className="space-y-4">
+              {currentItems.map((item) => (
+                <Card key={item.id} className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {item.inputType === 'image' ? (
+                          <>
+                            <Image className="h-3 w-3 mr-1" />
+                            图片输入
+                          </>
+                        ) : (
+                          <>
+                            <Type className="h-3 w-3 mr-1" />
+                            文本输入
+                          </>
+                        )}
+                      </Badge>
+                      <span className="text-sm font-mono text-muted-foreground">
+                        #{item.displayId}
                       </span>
                     </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => onRemoveItem(item.id)}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                </div>
 
-                <div className="space-y-3">
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">输入内容</h4>
-                    {item.inputType === 'image' ? (
-                      <ImageViewDialog 
-                        imageUrl={item.imageDataUrl} 
-                        fileName={item.originalImage.name}
-                      >
-                        <img 
-                          src={item.imageDataUrl} 
-                          alt="分析图片" 
-                          className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
-                          title="点击查看大图"
-                        />
-                      </ImageViewDialog>
-                    ) : (
-                      <div className="p-3 bg-muted rounded text-sm">
-                        {item.inputText || "无输入内容"}
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Target className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">分类置信度:</span>
+                        <span>{getClassificationConfidence(item)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">输入时间:</span>
+                        <span>{format(item.inputTime, 'yyyy-MM-dd HH:mm:ss')}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {item.inputType === 'image' && item.outputTime && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">完成时间:</span>
+                          <span>{format(item.outputTime, 'yyyy-MM-dd HH:mm:ss')}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 text-sm">
+                        <Zap className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">耗时:</span>
+                        <span>
+                          {item.inputType === 'image' 
+                            ? formatProcessingTime(item.inputTime, item.outputTime)
+                            : getProcessingTimeForText(item)
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">输入内容</h4>
+                      {item.inputType === 'image' ? (
+                        <ImageViewDialog 
+                          imageUrl={item.imageDataUrl} 
+                          fileName={item.originalImage.name}
+                        >
+                          <img 
+                            src={item.imageDataUrl} 
+                            alt="分析图片" 
+                            className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                            title="点击查看大图"
+                          />
+                        </ImageViewDialog>
+                      ) : (
+                        <div className="p-3 bg-muted rounded text-sm">
+                          {item.inputText || "无输入内容"}
+                        </div>
+                      )}
+                    </div>
+
+                    {item.inputType === 'image' && item.ocrResult && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-2">OCR 识别结果</h4>
+                        <div className="p-3 bg-muted rounded text-sm">
+                          {item.ocrResult.text || "无识别结果"}
+                        </div>
+                      </div>
+                    )}
+
+                    {item.analysisResult && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-2">分析结果</h4>
+                        <div className="p-3 bg-muted rounded text-sm space-y-1">
+                          <div><span className="font-medium">学科:</span> {item.analysisResult.subject}</div>
+                          <div><span className="font-medium">题型:</span> {item.analysisResult.questionType}</div>
+                          <div><span className="font-medium">结构:</span> {item.analysisResult.hasOptions ? `${item.analysisResult.options.length}个选项` : '主观题'}</div>
+                        </div>
                       </div>
                     )}
                   </div>
-
-                  {item.inputType === 'image' && item.ocrResult && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">OCR 识别结果</h4>
-                      <div className="p-3 bg-muted rounded text-sm">
-                        {item.ocrResult.text || "无识别结果"}
-                      </div>
-                    </div>
-                  )}
-
-                  {item.analysisResult && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">分析结果</h4>
-                      <div className="p-3 bg-muted rounded text-sm space-y-1">
-                        <div><span className="font-medium">学科:</span> {item.analysisResult.subject}</div>
-                        <div><span className="font-medium">题型:</span> {item.analysisResult.questionType}</div>
-                        <div><span className="font-medium">结构:</span> {item.analysisResult.hasOptions ? `${item.analysisResult.options.length}个选项` : '主观题'}</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </Card>
-            ))}
-          </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </ScrollArea>
       </div>
 
-      {/* 分页控件 */}
       {totalPages > 1 && (
         <div className="p-4 border-t bg-background">
           <div className="flex items-center justify-between">
