@@ -1,1 +1,14 @@
+
 project_id = "qaboyuyvpkracvtwngcl"
+
+[auth]
+# OTP expiry time in seconds (8 minutes = 480 seconds)
+otp_expiry = 480
+
+[auth.email]
+# Email OTP expiry time in seconds (8 minutes = 480 seconds)  
+otp_exp = 480
+
+[auth.sms]  
+# SMS OTP expiry time in seconds (8 minutes = 480 seconds)
+otp_exp = 480
