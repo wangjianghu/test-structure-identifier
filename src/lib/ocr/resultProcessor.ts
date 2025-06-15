@@ -3,29 +3,50 @@ import { RecognitionResult, FusionResult } from "./types";
 
 export class ResultProcessor {
   static intelligentResultFusion(results: RecognitionResult[], preprocessingSteps: string[]): FusionResult {
-    preprocessingSteps.push("开始智能结果融合分析");
+    preprocessingSteps.push("开始智能结果分析与选择");
     
-    // 1. 计算每个结果的质量分数
+    console.log("所有识别结果:", results.map(r => ({
+      config: r.config,
+      confidence: r.confidence,
+      textLength: r.text.length,
+      preview: r.text.substring(0, 100)
+    })));
+    
+    // 1. 为每个结果计算综合质量分数
     const scoredResults = results.map(result => {
       let qualityScore = result.confidence;
       
-      // 数学符号识别质量评分
-      const mathSymbols = (result.text.match(/[sin|cos|tan|log|ln|sqrt|frac|sum|int|∫∑∏√²³¹⁰±∩∪∈∉⊂⊃∅∠∴∵∂∆∇]/g) || []).length;
-      qualityScore += mathSymbols * 5;
+      // 中文数学关键词加分
+      const mathKeywords = ['已知', '函数', '定义域', '值域', '集合', '方程', '不等式', '求解', '计算', '证明', '判断'];
+      const keywordMatches = mathKeywords.filter(keyword => result.text.includes(keyword)).length;
+      qualityScore += keywordMatches * 15;
       
-      // 中文数学术语质量评分
-      const mathTerms = (result.text.match(/[已知|函数|定义域|值域|集合|方程|不等式|求解|计算|证明|判断]/g) || []).length;
-      qualityScore += mathTerms * 8;
+      // 常见数学符号加分
+      const mathSymbols = (result.text.match(/[=+\-×÷()[\]{}≤≥≠∞∑∫√²³¹⁰]/g) || []).length;
+      qualityScore += mathSymbols * 2;
       
-      // 文本长度合理性评分
-      const textLength = result.text.replace(/\s/g, '').length;
-      if (textLength > 10 && textLength < 500) {
+      // 连续数字和字母的合理性
+      const validTokens = (result.text.match(/[a-zA-Z0-9\u4e00-\u9fff]+/g) || []).length;
+      qualityScore += validTokens * 0.5;
+      
+      // 异常字符惩罚
+      const weirdChars = (result.text.match(/[^\u4e00-\u9fff\w\s=+\-×÷()[\]{}.,，。；：？！≤≥≠∞∑∫√²³¹⁰±∩∪∈∉⊂⊃∅∠∴∵∂∆∇]/g) || []).length;
+      qualityScore -= weirdChars * 3;
+      
+      // 文本长度合理性
+      if (result.text.length > 20 && result.text.length < 300) {
         qualityScore += 10;
       }
       
-      // 特殊字符过多惩罚
-      const specialChars = (result.text.match(/[^\u4e00-\u9fff\w\s=+\-×÷()[\]{}.,，。；：？！]/g) || []).length;
-      qualityScore -= specialChars * 2;
+      console.log(`${result.config} 质量评分:`, {
+        baseConfidence: result.confidence,
+        keywordBonus: keywordMatches * 15,
+        symbolBonus: mathSymbols * 2,
+        tokenBonus: validTokens * 0.5,
+        weirdPenalty: -weirdChars * 3,
+        lengthBonus: (result.text.length > 20 && result.text.length < 300) ? 10 : 0,
+        finalScore: qualityScore
+      });
       
       return { ...result, qualityScore };
     });
@@ -34,20 +55,21 @@ export class ResultProcessor {
     scoredResults.sort((a, b) => b.qualityScore - a.qualityScore);
     const bestResult = scoredResults[0];
     
+    console.log(`选择最佳结果: ${bestResult.config} (质量分数: ${bestResult.qualityScore.toFixed(1)})`);
     preprocessingSteps.push(`选择最佳结果: ${bestResult.config} (质量分数: ${bestResult.qualityScore.toFixed(1)})`);
     
-    // 3. 文本后处理和修正
-    let finalText = this.postProcessText(bestResult.text, preprocessingSteps);
+    // 3. 精确的文本后处理
+    let finalText = this.preciseTextCorrection(bestResult.text, preprocessingSteps);
     
-    // 4. 计算综合指标
+    // 4. 计算最终指标
     const metrics = {
-      textRegionsDetected: 5,
-      mathSymbolsDetected: (finalText.match(/[sin|cos|tan|log|ln|sqrt|∫∑∏√²³¹⁰±∩∪∈∉⊂⊃∅∠∴∵∂∆∇]/g) || []).length,
+      textRegionsDetected: Math.ceil(finalText.split(/\n|。|！|？/).length),
+      mathSymbolsDetected: (finalText.match(/[=+\-×÷()[\]{}≤≥≠∞∑∫√²³¹⁰±∩∪∈∉⊂⊃∅∠∴∵∂∆∇]/g) || []).length,
       fractionLinesDetected: (finalText.match(/[÷\/]/g) || []).length,
       bracketsDetected: (finalText.match(/[()[\]{}]/g) || []).length,
-      skewAngleCorrected: 0.5,
+      skewAngleCorrected: 0,
       layoutAnalysisScore: bestResult.qualityScore,
-      multiModalScore: bestResult.qualityScore * 1.2
+      multiModalScore: bestResult.qualityScore * 1.1
     };
     
     return {
@@ -64,73 +86,87 @@ export class ResultProcessor {
     };
   }
 
-  private static postProcessText(text: string, preprocessingSteps: string[]): string {
+  private static preciseTextCorrection(text: string, preprocessingSteps: string[]): string {
     let processed = text;
+    let corrections = 0;
     
-    // 常见OCR错误修正
-    const corrections = [
-      // 数学函数名修正
-      [/[和]函数/g, '函数'],
+    // 核心中文数学术语修正
+    const criticalCorrections = [
       [/已和/g, '已知'],
-      [/定[乂义]域/g, '定义域'],
-      [/值[域域]/g, '值域'],
-      [/[正]实数/g, '正实数'],
-      [/[元]素/g, '元素'],
-      [/[中]的/g, '中的'],
-      [/[理]由/g, '理由'],
-      [/[说]明/g, '说明'],
-      [/[取]值/g, '取值'],
-      [/[范]围/g, '范围'],
+      [/己知/g, '已知'],
+      [/定乂域/g, '定义域'],
+      [/定[义乂]域/g, '定义域'],
+      [/值[域城]/g, '值域'],
+      [/正[实史]数/g, '正实数'],
+      [/[兀元]素/g, '元素'],
+      [/[中众]的/g, '中的'],
+      [/[理埋里]由/g, '理由'],
+      [/[说话]明/g, '说明'],
+      [/[取敢]值/g, '取值'],
+      [/[范籁]围/g, '范围'],
+      [/[和或]是/g, '或是'],
+      [/[朱未]知/g, '未知'],
       
-      // 数学符号修正
-      [/[×x]/g, 'x'],
-      [/[÷]/g, '/'],
-      [/[≠]/g, '≠'],
-      [/[≤]/g, '≤'],
-      [/[≥]/g, '≥'],
-      [/sin[×x]/g, 'sin x'],
-      [/cos[×x]/g, 'cos x'],
-      [/tan[×x]/g, 'tan x'],
+      // 数学函数名修正
+      [/sin[×x\s]*([0-9a-zA-Z])/g, 'sin $1'],
+      [/cos[×x\s]*([0-9a-zA-Z])/g, 'cos $1'],
+      [/tan[×x\s]*([0-9a-zA-Z])/g, 'tan $1'],
+      [/log[×x\s]*([0-9a-zA-Z])/g, 'log $1'],
       
-      // 括号和符号修正
+      // 常见符号修正
+      [/[×xX]/g, '×'],
+      [/[÷]/g, '÷'],
       [/[(（]/g, '('],
       [/[)）]/g, ')'],
+      [/[【[]/g, '['],
+      [/[】]]/g, ']'],
       [/[{｛]/g, '{'],
       [/[}｝]/g, '}'],
-      [/[【]/g, '['],
-      [/[】]/g, ']'],
       
       // 数字修正
       [/[oO]/g, '0'],
       [/[Il|]/g, '1'],
       
-      // 清理多余空格和字符
-      [/\s+/g, ' '],
-      [/[^\u4e00-\u9fff\w\s=+\-×÷()[\]{}.,，。；：？！≤≥≠∞∑∫√²³¹⁰±∩∪∈∉⊂⊃∅∠∴∵∂∆∇αβγδεζηθικλμνξοπρστυφχψω]/g, '']
+      // 清理乱码和多余字符
+      [/[^\u4e00-\u9fff\w\s=+\-×÷()[\]{}.,，。；：？！≤≥≠∞∑∫√²³¹⁰±∩∪∈∉⊂⊃∅∠∴∵∂∆∇]/g, ''],
+      [/\s+/g, ' '] // 合并多个空格
     ];
     
-    corrections.forEach(([pattern, replacement]) => {
+    criticalCorrections.forEach(([pattern, replacement], index) => {
+      const before = processed;
       processed = processed.replace(pattern as RegExp, replacement as string);
+      if (before !== processed) {
+        corrections++;
+        console.log(`修正规则 ${index + 1}: "${before.substring(0, 50)}" -> "${processed.substring(0, 50)}"`);
+      }
     });
     
-    preprocessingSteps.push("应用OCR错误修正规则");
+    preprocessingSteps.push(`应用 ${corrections} 个文本修正规则`);
     
     return processed.trim();
   }
 
   private static extractQuestionNumber(text: string): string | undefined {
-    const match = text.match(/^(\d+)[.\s]/);
-    return match ? match[1] : undefined;
+    const patterns = [
+      /^(\d+)[.\s、]/,
+      /第\s*(\d+)\s*题/,
+      /题\s*(\d+)/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) return match[1];
+    }
+    return undefined;
   }
 
   private static extractFormulas(text: string): string[] {
     const formulas = [];
     const patterns = [
-      /sin\s*[x]/g,
-      /cos\s*[x]/g,
-      /tan\s*[x]/g,
-      /f\s*\(\s*x\s*\)/g,
-      /[x]\s*[+\-]\s*\d+/g
+      /f\s*\(\s*[x]\s*\)\s*=\s*[^，。,.\n]+/g,
+      /[xy]\s*[=]\s*[^，。,.\n]+/g,
+      /\w+\s*[+\-×÷]\s*\w+/g,
+      /sin|cos|tan|log|ln/g
     ];
     
     patterns.forEach(pattern => {
@@ -138,14 +174,21 @@ export class ResultProcessor {
       if (matches) formulas.push(...matches);
     });
     
-    return formulas;
+    return [...new Set(formulas)]; // 去重
   }
 
   private static extractOptions(text: string): string[] {
     const options = [];
-    const optionPattern = /[A-D][.\s][^A-D]+/g;
-    const matches = text.match(optionPattern);
-    if (matches) options.push(...matches);
+    const patterns = [
+      /[A-D][.\s)）][^A-D\n]{1,50}/g,
+      /[(（][A-D][)）][^A-D\n]{1,50}/g
+    ];
+    
+    patterns.forEach(pattern => {
+      const matches = text.match(pattern);
+      if (matches) options.push(...matches.map(opt => opt.trim()));
+    });
+    
     return options;
   }
 }
