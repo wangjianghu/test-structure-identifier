@@ -2,7 +2,11 @@
 export interface BaseHistoryItem {
   id: string;
   timestamp: Date;
+  inputTime: Date;
+  outputTime?: Date;
   inputType: 'text' | 'image';
+  selectedSubject?: string;
+  questionTypeExample?: string;
 }
 
 export interface TextHistoryItem extends BaseHistoryItem {
@@ -56,3 +60,13 @@ export type HistoryItem = TextHistoryItem | ImageHistoryItem;
 
 // Legacy type for backward compatibility
 export interface OCRHistoryItem extends ImageHistoryItem {}
+
+// 新增类型用于收集用户输入的题型结构示例
+export interface QuestionTypeExample {
+  id: string;
+  timestamp: Date;
+  subject: string;
+  questionType: string;
+  structureExample: string;
+  usageCount: number;
+}

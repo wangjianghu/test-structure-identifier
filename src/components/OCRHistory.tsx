@@ -2,10 +2,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Download, FileText, Image, Type } from "lucide-react";
+import { Trash2, Download, FileText, Image, Type, Clock } from "lucide-react";
 import { HistoryItem } from "@/types/ocrHistory";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { zhCN } from "date-fns/locale";
+import { ImageViewDialog } from "./ImageViewDialog";
 
 interface OCRHistoryProps {
   history: HistoryItem[];
@@ -30,6 +31,12 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
       </div>
     );
   }
+
+  const formatProcessingTime = (inputTime: Date, outputTime?: Date) => {
+    if (!outputTime) return "处理中...";
+    const processingMs = outputTime.getTime() - inputTime.getTime();
+    return `${(processingMs / 1000).toFixed(1)}s`;
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -58,11 +65,17 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
             <div className="flex items-start justify-between">
               <div className="flex gap-3 flex-1">
                 {item.inputType === 'image' ? (
-                  <img 
-                    src={item.imageDataUrl} 
-                    alt="识别图片" 
-                    className="w-16 h-16 object-cover rounded border flex-shrink-0"
-                  />
+                  <ImageViewDialog 
+                    imageUrl={item.imageDataUrl} 
+                    fileName={item.originalImage.name}
+                  >
+                    <img 
+                      src={item.imageDataUrl} 
+                      alt="识别图片" 
+                      className="w-16 h-16 object-cover rounded border flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                      title="点击查看大图"
+                    />
+                  </ImageViewDialog>
                 ) : (
                   <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded border flex items-center justify-center flex-shrink-0">
                     <Type className="h-6 w-6 text-muted-foreground" />
@@ -85,6 +98,12 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                       )}
                     </Badge>
                     
+                    {item.selectedSubject && (
+                      <Badge variant="secondary" className="text-xs">
+                        {item.selectedSubject}
+                      </Badge>
+                    )}
+                    
                     {item.inputType === 'image' && (
                       <>
                         <span className="text-sm font-medium truncate max-w-32">
@@ -100,6 +119,19 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                       <Badge variant="default">
                         已分析
                       </Badge>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                    <Clock className="h-3 w-3" />
+                    <span>输入: {format(item.inputTime, 'HH:mm:ss')}</span>
+                    {item.outputTime && (
+                      <>
+                        <span>•</span>
+                        <span>完成: {format(item.outputTime, 'HH:mm:ss')}</span>
+                        <span>•</span>
+                        <span>耗时: {formatProcessingTime(item.inputTime, item.outputTime)}</span>
+                      </>
                     )}
                   </div>
                   
@@ -122,6 +154,12 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                       </>
                     )}
                   </div>
+
+                  {item.questionTypeExample && (
+                    <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded text-xs">
+                      <span className="font-medium">题型示例:</span> {item.questionTypeExample}
+                    </div>
+                  )}
                 </div>
               </div>
               

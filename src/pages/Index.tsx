@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Github, Zap } from "lucide-react";
@@ -8,6 +9,7 @@ import { QuestionInput } from "@/components/QuestionInput";
 import { EnhancedOCR, OCRResult } from "@/lib/enhancedOCR";
 import { OCRHistory } from "@/components/OCRHistory";
 import { useOCRHistory } from "@/hooks/useOCRHistory";
+import { SubjectAndTypeSelector } from "@/components/SubjectAndTypeSelector";
 
 const exampleText = "4.已知集合M={-2,-1,0,1,2},N={x|x²-x-2≤0},则M∩(CRN)=(  )\nA.{-2,-1}\nB.{-2}\nC.{-1,0}\nD.{0}";
 
@@ -19,8 +21,13 @@ const Index = () => {
   const [ocrResult, setOcrResult] = useState<OCRResult | null>(null);
   const [currentImageHistoryId, setCurrentImageHistoryId] = useState<string | null>(null);
   
+  // 新增状态
+  const [selectedSubject, setSelectedSubject] = useState("");
+  const [questionTypeExample, setQuestionTypeExample] = useState("");
+  
   const { 
     history, 
+    questionTypeExamples,
     addTextToHistory, 
     addImageToHistory, 
     updateHistoryItemAnalysis, 
@@ -43,7 +50,7 @@ const Index = () => {
         setCurrentImageHistoryId(null);
       } else {
         // 如果是文本输入，添加新的历史记录
-        addTextToHistory(inputText, result);
+        addTextToHistory(inputText, result, selectedSubject, questionTypeExample);
       }
       
       setIsLoading(false);
@@ -72,7 +79,7 @@ const Index = () => {
       setInputText(result.text);
       
       // 添加到历史记录
-      const historyItem = await addImageToHistory(file, result);
+      const historyItem = await addImageToHistory(file, result, undefined, selectedSubject, questionTypeExample);
       setCurrentImageHistoryId(historyItem.id);
       
       // 显示处理结果
@@ -95,7 +102,7 @@ const Index = () => {
       enhancedOCR.destroy();
       setIsOcrLoading(false);
     }
-  }, [isOcrLoading, addImageToHistory]);
+  }, [isOcrLoading, addImageToHistory, selectedSubject, questionTypeExample]);
 
   // Reset current image history ID when text is manually changed
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -164,6 +171,14 @@ const Index = () => {
             </div>
 
             <div className="flex-1 space-y-4 max-w-4xl mx-auto w-full">
+              {/* 学科选择和题型示例输入 */}
+              <SubjectAndTypeSelector
+                selectedSubject={selectedSubject}
+                onSubjectChange={setSelectedSubject}
+                questionTypeExample={questionTypeExample}
+                onQuestionTypeExampleChange={setQuestionTypeExample}
+              />
+
               <QuestionInput
                 value={inputText}
                 onChange={handleTextChange}
@@ -202,11 +217,21 @@ const Index = () => {
                   <AnalysisResult result={analysisResult} />
                 </div>
               )}
+
+              {/* 题型示例统计信息 */}
+              {questionTypeExamples.length > 0 && (
+                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border">
+                  <h3 className="font-semibold mb-2 text-sm">题型结构收集统计</h3>
+                  <div className="text-xs text-muted-foreground">
+                    已收集 {questionTypeExamples.length} 种题型结构示例，将用于提升识别准确性
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
           {/* 右侧：分析历史记录 - 撑满全屏 */}
-          <div className="w-full flex-1 border-l bg-background/50">
+          <div className="w-96 border-l bg-background/50">
             <OCRHistory
               history={history}
               onRemoveItem={removeItem}
