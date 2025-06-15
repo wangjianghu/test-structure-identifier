@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Copy, FileText, BookOpen, HelpCircle, Calculator } from "lucide-react";
 import { ParsedQuestion } from "@/lib/parser";
 import { toast } from "sonner";
+import { FormulaRenderer } from "./FormulaRenderer";
 
 interface AnalysisResultProps {
   result: ParsedQuestion;
@@ -139,7 +140,9 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <span className="text-sm font-medium">父题题干:</span>
-                    <p className="mt-1 text-sm whitespace-pre-wrap">{result.parentQuestion.body}</p>
+                    <div className="mt-1 text-sm whitespace-pre-wrap">
+                      <FormulaRenderer content={result.parentQuestion.body} />
+                    </div>
                   </div>
                   <Button
                     variant="outline"
@@ -197,7 +200,9 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <span className="text-sm font-medium">子题题干:</span>
-                          <p className="mt-1 text-sm whitespace-pre-wrap">{subQ.body}</p>
+                          <div className="mt-1 text-sm whitespace-pre-wrap">
+                            <FormulaRenderer content={subQ.body} />
+                          </div>
                         </div>
                         <Button
                           variant="outline"
@@ -230,7 +235,9 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
                         <div className="space-y-1 p-2 bg-green-50 dark:bg-green-900/20 rounded">
                           {subQ.options.map((option: any, optIndex: number) => (
                             <div key={optIndex} className="flex items-center justify-between text-sm">
-                              <span>{option.key}. {option.value}</span>
+                              <span>
+                                {option.key}. <FormulaRenderer content={option.value} />
+                              </span>
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -289,7 +296,9 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <span className="text-sm font-medium">题干:</span>
-                  <p className="mt-1 text-sm whitespace-pre-wrap">{result.body}</p>
+                  <div className="mt-1 text-sm whitespace-pre-wrap">
+                    <FormulaRenderer content={result.body} />
+                  </div>
                 </div>
                 <Button
                   variant="outline"
@@ -322,7 +331,9 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
                 <div className="space-y-1 p-2 bg-green-50 dark:bg-green-900/20 rounded">
                   {result.options.map((option, index) => (
                     <div key={index} className="flex items-center justify-between text-sm">
-                      <span>{option.key}. {option.value}</span>
+                      <span>
+                        {option.key}. <FormulaRenderer content={option.value} />
+                      </span>
                       <Button
                         variant="outline"
                         size="sm"

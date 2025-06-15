@@ -66,7 +66,7 @@ export function StructureExampleInput({
           />
         </PopoverTrigger>
         <PopoverContent 
-          className="w-96 p-0" 
+          className="w-[500px] p-0" 
           side="bottom" 
           align="start"
           sideOffset={4}
