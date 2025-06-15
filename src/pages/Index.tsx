@@ -43,7 +43,7 @@ const Index = () => {
       
       await worker.setParameters({
         tessedit_char_whitelist: allowedChars,
-        tessedit_pageseg_mode: '6'
+        tessedit_pageseg_mode: 6
       });
       
       const { data: { text } } = await worker.recognize(file);

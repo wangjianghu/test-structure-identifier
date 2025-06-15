@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { ParsedQuestion } from "@/lib/parser";
-import { ListChecks, Hash, Type, Book, Copy, CopyAll } from "lucide-react";
+import { ListChecks, Hash, Type, Book, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 interface AnalysisResultProps {
@@ -82,7 +82,7 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
             onClick={copyAll}
             className="ml-2"
           >
-            <CopyAll className="mr-1 h-4 w-4" />
+            <Copy className="mr-1 h-4 w-4" />
             复制全部
           </Button>
         </CardTitle>
