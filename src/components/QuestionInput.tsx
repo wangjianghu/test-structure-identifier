@@ -1,137 +1,241 @@
-
-import * as React from "react";
-import { Textarea, type TextareaProps } from "@/components/ui/textarea";
+import { useState, useRef } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Image as ImageIcon, Zap, X, Eye } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Upload, Search, Trash2, Loader2, Eye } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { useOCR } from "@/hooks/useOCR";
+import { useOCRHistory } from "@/hooks/useOCRHistory";
+import { SubjectAndTypeSelector } from "./SubjectAndTypeSelector";
 import { ImageViewDialog } from "./ImageViewDialog";
 
-interface QuestionInputProps extends Omit<TextareaProps, 'className'> {
-  onImagesUpload: (files: File[]) => void;
-  uploadedImages: File[];
-  onRemoveImage: (index: number) => void;
-  isOcrLoading: boolean;
-  className?: string;
-  onAnalyze: () => void;
-  isAnalyzing: boolean;
-}
+export function QuestionInput() {
+  const [inputMode, setInputMode] = useState<'text' | 'image'>('text');
+  const [inputText, setInputText] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedSubject, setSelectedSubject] = useState<string | undefined>(undefined);
+  const [selectedQuestionType, setSelectedQuestionType] = useState<string | undefined>(undefined);
+  const [structureExample, setStructureExample] = useState<string | undefined>(undefined);
+  const { toast } = useToast();
+  const { analyzeText, analyzeImage } = useOCR();
+  const { addTextToHistory, addImageToHistory } = useOCRHistory();
 
-export function QuestionInput({ 
-  onImagesUpload,
-  uploadedImages,
-  onRemoveImage,
-  isOcrLoading, 
-  className, 
-  onAnalyze, 
-  isAnalyzing,
-  value,
-  ...props 
-}: QuestionInputProps) {
-  const [imagePreviews, setImagePreviews] = React.useState<string[]>([]);
+  const handleAnalyze = async () => {
+    setIsLoading(true);
+    try {
+      if (inputMode === 'text') {
+        if (!inputText.trim()) {
+          toast({
+            title: "请输入试题内容",
+            description: "请在文本框中输入您要分析的试题内容。",
+          });
+          return;
+        }
 
-  React.useEffect(() => {
-    // 创建图片预览URLs
-    const previews = uploadedImages.map(file => URL.createObjectURL(file));
-    setImagePreviews(previews);
+        const analysisResult = await analyzeText(inputText);
+        if (analysisResult) {
+          addTextToHistory(inputText, analysisResult, selectedSubject, structureExample);
+          toast({
+            title: "文本分析完成",
+            description: "我们已经成功分析了您输入的文本。",
+          });
+        } else {
+          toast({
+            title: "文本分析失败",
+            description: "未能成功分析您输入的文本，请检查输入或稍后重试。",
+            variant: "destructive",
+          });
+        }
+      } else {
+        if (selectedFiles.length === 0) {
+          toast({
+            title: "请选择图片",
+            description: "请选择包含试题内容的图片文件。",
+          });
+          return;
+        }
 
-    // 清理旧的URLs
-    return () => {
-      previews.forEach(url => URL.revokeObjectURL(url));
-    };
-  }, [uploadedImages]);
+        for (const file of selectedFiles) {
+          const historyItem = await addImageToHistory(file, {
+            text: '正在识别...',
+            confidence: 0,
+            classification: {
+              isQuestion: false,
+              confidence: 0,
+              questionType: 'unknown',
+              subject: 'unknown',
+              features: {
+                hasQuestionNumber: false,
+                hasOptions: false,
+                hasMathSymbols: false,
+                hasQuestionWords: false,
+                textLength: 0,
+              }
+            },
+            preprocessingSteps: [],
+            processingTime: 0
+          }, undefined, selectedSubject, structureExample);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    if (files.length > 0) {
-      onImagesUpload([...uploadedImages, ...files]);
+          const analysisResult = await analyzeImage(file);
+          if (analysisResult) {
+            addImageToHistory(file, analysisResult.ocrResult, analysisResult.parsedQuestion, selectedSubject, structureExample);
+            toast({
+              title: `${file.name} 分析完成`,
+              description: `我们已经成功分析了您选择的图片 ${file.name}。`,
+            });
+          } else {
+            toast({
+              title: `${file.name} 分析失败`,
+              description: `未能成功分析您选择的图片 ${file.name}，请检查图片或稍后重试。`,
+              variant: "destructive",
+            });
+          }
+        }
+      }
+    } finally {
+      setIsLoading(false);
     }
-    event.target.value = ''; // 清空文件输入
+  };
+
+  const handleClear = () => {
+    setInputText('');
+    setSelectedFiles([]);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setSelectedFiles(files);
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
   };
 
   return (
-    <div className={cn(
-      "flex flex-col rounded-md border border-input bg-background shadow-sm",
-      "focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
-      "transition-shadow",
-      className
-    )}>
-      <Textarea
-        placeholder="在此处粘贴试题文本或上传图片..."
-        className="min-h-[150px] text-base w-full border-none bg-transparent rounded-t-md focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none resize-y p-3"
-        value={value}
-        {...props}
-      />
+    <Card className="w-full max-w-4xl mx-auto">
+      <CardHeader>
+        <CardTitle>试题分析</CardTitle>
+      </CardHeader>
       
-      {/* 底部操作栏 */}
-      <div className="flex items-center justify-between p-2 border-t bg-slate-50 dark:bg-slate-900/50 rounded-b-md">
-        <div className="flex items-center gap-2">
-          {/* 上传按钮 */}
-          <Button asChild variant="ghost" size="icon" disabled={isOcrLoading || isAnalyzing} className="cursor-pointer rounded-md h-8 w-8">
-            <label htmlFor="file-upload-input">
-              <ImageIcon className="h-4 w-4 text-muted-foreground" />
-              <span className="sr-only">上传图片</span>
-            </label>
-          </Button>
-          <input
-            id="file-upload-input"
-            type="file"
-            className="sr-only"
-            onChange={handleFileChange}
-            accept="image/*"
-            multiple
-            disabled={isOcrLoading || isAnalyzing}
+      <CardContent className="space-y-6">
+        <div className="space-y-4">
+          <SubjectAndTypeSelector
+            selectedSubject={selectedSubject}
+            onSubjectChange={setSelectedSubject}
+            selectedQuestionType={selectedQuestionType}
+            onQuestionTypeChange={setSelectedQuestionType}
+            structureExample={structureExample}
+            onStructureExampleChange={setStructureExample}
           />
-
-          {/* 图片缩略图 */}
-          {imagePreviews.length > 0 && (
-            <div className="flex items-center gap-1 ml-2">
-              {imagePreviews.map((preview, index) => (
-                <div key={index} className="relative group">
-                  <div className="w-8 h-8 rounded border overflow-hidden bg-gray-100">
-                    <img 
-                      src={preview} 
-                      alt={`上传图片 ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  
-                  {/* 悬停时显示的操作按钮 */}
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center gap-1">
-                    <ImageViewDialog 
-                      imageUrl={preview} 
-                      fileName={uploadedImages[index]?.name || `图片 ${index + 1}`}
-                    >
-                      <Button variant="ghost" size="sm" className="h-4 w-4 p-0 text-white hover:text-blue-200">
-                        <Eye className="h-3 w-3" />
-                      </Button>
-                    </ImageViewDialog>
-                    
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => onRemoveImage(index)}
-                      className="h-4 w-4 p-0 text-white hover:text-red-200"
-                      disabled={isOcrLoading || isAnalyzing}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
+          
+          <Tabs value={inputMode} onValueChange={(value) => setInputMode(value as 'text' | 'image')}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="text">文本输入</TabsTrigger>
+              <TabsTrigger value="image">图片输入</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="text" className="space-y-4">
+              <Textarea
+                placeholder="请输入试题内容..."
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                className="min-h-[120px]"
+              />
+            </TabsContent>
+            
+            <TabsContent value="image" className="space-y-4">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="mb-4"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  选择图片
+                </Button>
+                <p className="text-sm text-muted-foreground">
+                  支持 JPG、PNG、WebP 格式，可选择多张图片
+                </p>
+              </div>
+              
+              {selectedFiles.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">已选择 {selectedFiles.length} 张图片:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedFiles.map((file, index) => (
+                      <div key={index} className="relative w-20 h-20 group">
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`预览 ${index + 1}`}
+                          className="w-full h-full object-cover rounded border"
+                        />
+                        
+                        {/* 删除按钮 - 右上角 */}
+                        <button
+                          onClick={() => removeFile(index)}
+                          className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                          title="删除图片"
+                        >
+                          ×
+                        </button>
+                        
+                        {/* 预览按钮 - 中央 */}
+                        <ImageViewDialog 
+                          imageUrl={URL.createObjectURL(file)} 
+                          fileName={file.name}
+                        >
+                          <button
+                            className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center rounded opacity-0 group-hover:opacity-100"
+                            title="查看大图"
+                          >
+                            <Eye className="h-4 w-4 text-white" />
+                          </button>
+                        </ImageViewDialog>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
-
-        <Button 
-          onClick={onAnalyze} 
-          disabled={isAnalyzing || isOcrLoading || (!value && uploadedImages.length === 0)} 
-          size="sm"
-          className="ml-auto"
-        >
-          <Zap className="mr-2 h-4 w-4" />
-          {isAnalyzing ? "分析中..." : "开始分析"}
-        </Button>
-      </div>
-    </div>
+        
+        <div className="flex gap-4">
+          <Button 
+            onClick={handleAnalyze} 
+            disabled={isLoading || (!inputText.trim() && selectedFiles.length === 0)}
+            className="flex-1"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                分析中...
+              </>
+            ) : (
+              <>
+                <Search className="h-4 w-4 mr-2" />
+                开始分析
+              </>
+            )}
+          </Button>
+          
+          <Button variant="outline" onClick={handleClear}>
+            <Trash2 className="h-4 w-4 mr-2" />
+            清空
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
