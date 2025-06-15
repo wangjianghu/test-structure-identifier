@@ -105,12 +105,14 @@ export function QuestionInput({
       // For now, we'll just simulate the process
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Mock analysis result
+      // Mock analysis result with all required properties
       const mockResult: ParsedQuestion = {
         body: typeof value === 'string' ? value : '',
+        questionNumber: null,
         questionType: '问答题',
         subject: selectedSubject || '数学',
-        options: []
+        options: [],
+        hasFormulas: false
       };
       
       if (onAnalysisComplete) {
