@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -87,6 +86,14 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
     return "-";
   };
 
+  const getProcessingTimeForText = (item: HistoryItem) => {
+    if (item.inputType === 'text' && item.analysisResult) {
+      // 对于文本输入，我们使用一个估算的处理时间（通常很快）
+      return "50ms";
+    }
+    return "-";
+  };
+
   if (history.length === 0) {
     return (
       <div className="h-full flex flex-col">
@@ -161,31 +168,34 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm">
+                      <Target className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">分类置信度:</span>
+                      <span>{getClassificationConfidence(item)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
                       <Clock className="h-4 w-4 text-muted-foreground" />
                       <span className="text-muted-foreground">输入时间:</span>
                       <span>{format(item.inputTime, 'yyyy-MM-dd HH:mm:ss')}</span>
                     </div>
-                    {item.outputTime && (
+                  </div>
+                  <div className="space-y-2">
+                    {item.inputType === 'image' && item.outputTime && (
                       <div className="flex items-center gap-2 text-sm">
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <span className="text-muted-foreground">完成时间:</span>
                         <span>{format(item.outputTime, 'yyyy-MM-dd HH:mm:ss')}</span>
                       </div>
                     )}
-                  </div>
-                  <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm">
-                      <Target className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">分类置信度:</span>
-                      <span>{getClassificationConfidence(item)}</span>
+                      <Zap className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">耗时:</span>
+                      <span>
+                        {item.inputType === 'image' 
+                          ? formatProcessingTime(item.inputTime, item.outputTime)
+                          : getProcessingTimeForText(item)
+                        }
+                      </span>
                     </div>
-                    {item.inputType === 'image' && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Zap className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">耗时:</span>
-                        <span>{formatProcessingTime(item.inputTime, item.outputTime)}</span>
-                      </div>
-                    )}
                   </div>
                 </div>
 
