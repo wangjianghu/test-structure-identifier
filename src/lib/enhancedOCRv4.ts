@@ -1,3 +1,4 @@
+
 import { createWorker, PSM, OEM } from "tesseract.js";
 import { MathematicalOCRProcessor } from "./mathematicalOCRProcessor";
 import { QuestionClassifier, ClassificationResult } from "./questionClassifier";
@@ -80,7 +81,7 @@ export class EnhancedOCRv4 {
 
       return {
         text: fusedResult.text,
-        confidence,
+        confidence: fusedResult.confidence,
         classification,
         preprocessingSteps,
         processingTime,
