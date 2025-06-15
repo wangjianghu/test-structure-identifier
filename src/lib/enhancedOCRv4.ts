@@ -1,4 +1,3 @@
-
 import { MathematicalOCRProcessor } from "./mathematicalOCRProcessor";
 import { QuestionClassifier } from "./questionClassifier";
 import { EnhancedOCRv4Result } from "./ocr/types";
@@ -6,7 +5,7 @@ import { ImagePreprocessor } from "./ocr/imagePreprocessor";
 import { TesseractRecognizer } from "./ocr/tesseractRecognizer";
 import { ResultProcessor } from "./ocr/resultProcessor";
 
-export { EnhancedOCRv4Result };
+export type { EnhancedOCRv4Result };
 
 export class EnhancedOCRv4 {
   private processor: MathematicalOCRProcessor;
