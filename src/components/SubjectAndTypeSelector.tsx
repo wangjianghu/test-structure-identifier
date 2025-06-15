@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +29,51 @@ const subjects = [
   { value: "政治", label: "政治" },
 ];
 
+const questionTypes = {
+  "数学": ["单选题", "填空题", "解答题", "证明题", "应用题"],
+  "语文": ["选择题", "阅读理解", "作文题", "文言文翻译", "诗词鉴赏"],
+  "英语": ["单选题", "完形填空", "阅读理解", "翻译题", "写作题"],
+  "物理": ["选择题", "填空题", "实验题", "计算题", "论述题"],
+  "化学": ["选择题", "填空题", "实验题", "计算题", "推断题"],
+  "生物": ["选择题", "填空题", "实验题", "分析题", "简答题"],
+  "历史": ["选择题", "材料题", "论述题", "分析题", "简答题"],
+  "地理": ["选择题", "填空题", "读图题", "分析题", "简答题"],
+  "政治": ["选择题", "材料题", "论述题", "分析题", "简答题"],
+};
+
+const questionStructureTemplates = {
+  "数学-单选题": `题目：数学计算或概念理解
+选项：A. 选项内容
+选项：B. 选项内容  
+选项：C. 选项内容
+选项：D. 选项内容`,
+  "数学-填空题": `题目：数学计算题干
+空白：______(答案位置)
+提示：可能包含单位要求`,
+  "数学-解答题": `题目：问题描述
+要求：解答过程
+步骤：(1) 第一步分析
+步骤：(2) 第二步计算
+步骤：(3) 得出结论`,
+  "语文-阅读理解": `文章：阅读材料内容
+问题1：理解类问题
+问题2：分析类问题
+问题3：概括类问题`,
+  "英语-完形填空": `文章：英语短文
+空白1：_____ (选择题)
+空白2：_____ (选择题)
+选项：每个空白对应4个选项`,
+  "物理-实验题": `实验目的：明确实验目标
+实验器材：列出所需器材
+实验步骤：详细操作过程
+数据处理：计算和分析
+结论：实验结果`,
+  "化学-推断题": `信息：已知条件
+推断：物质A是_____
+推断：物质B是_____
+验证：实验验证方法`,
+};
+
 export function SubjectAndTypeSelector({
   selectedSubject,
   onSubjectChange,
@@ -37,27 +82,44 @@ export function SubjectAndTypeSelector({
 }: SubjectAndTypeSelectorProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [tempExample, setTempExample] = useState(questionTypeExample);
+  const [selectedQuestionType, setSelectedQuestionType] = useState("");
+
+  const availableQuestionTypes = selectedSubject ? questionTypes[selectedSubject as keyof typeof questionTypes] || [] : [];
+
+  // 当学科或题型改变时，自动设置模板
+  useEffect(() => {
+    if (selectedSubject && selectedQuestionType) {
+      const templateKey = `${selectedSubject}-${selectedQuestionType}` as keyof typeof questionStructureTemplates;
+      const template = questionStructureTemplates[templateKey];
+      if (template && !questionTypeExample) {
+        setTempExample(template);
+      }
+    }
+  }, [selectedSubject, selectedQuestionType, questionTypeExample]);
+
+  // 当学科改变时重置题型
+  useEffect(() => {
+    setSelectedQuestionType("");
+  }, [selectedSubject]);
 
   const saveToDatabase = async (content: string, subject: string, questionType: string) => {
     try {
       console.log('保存题型示例到数据库:', { content, subject, questionType });
       
-      // 首先检查是否已存在相同的示例
       const { data: existingData, error: checkError } = await supabase
         .from('question_type_examples')
         .select('*')
         .eq('subject', subject)
         .eq('question_type', questionType)
         .eq('structure_example', content)
-        .single();
+        .maybeSingle();
 
-      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 表示没有找到记录
+      if (checkError) {
         console.error('检查现有记录时出错:', checkError);
         throw checkError;
       }
 
       if (existingData) {
-        // 如果记录已存在，更新使用次数和最后使用时间
         const { error: updateError } = await supabase
           .from('question_type_examples')
           .update({
@@ -76,7 +138,6 @@ export function SubjectAndTypeSelector({
           description: "使用次数已增加，数据已保存到云端"
         });
       } else {
-        // 如果记录不存在，创建新记录
         const { error: insertError } = await supabase
           .from('question_type_examples')
           .insert({
@@ -109,29 +170,43 @@ export function SubjectAndTypeSelector({
     setIsDialogOpen(false);
     onQuestionTypeExampleChange(tempExample);
     
-    // 如果有内容变化且选择了学科，保存到数据库
-    if (tempExample && tempExample !== questionTypeExample && selectedSubject) {
-      // 假设题型从分析结果中获取，这里先用默认值
-      const questionType = "通用题型";
-      await saveToDatabase(tempExample, selectedSubject, questionType);
+    if (tempExample && tempExample !== questionTypeExample && selectedSubject && selectedQuestionType) {
+      await saveToDatabase(tempExample, selectedSubject, selectedQuestionType);
     }
   };
 
   const handleInputClick = () => {
-    setTempExample(questionTypeExample);
+    // 如果有模板且当前为空，使用模板
+    if (selectedSubject && selectedQuestionType && !questionTypeExample) {
+      const templateKey = `${selectedSubject}-${selectedQuestionType}` as keyof typeof questionStructureTemplates;
+      const template = questionStructureTemplates[templateKey];
+      if (template) {
+        setTempExample(template);
+      } else {
+        setTempExample(questionTypeExample);
+      }
+    } else {
+      setTempExample(questionTypeExample);
+    }
     setIsDialogOpen(true);
+  };
+
+  const handleQuestionTypeChange = (value: string) => {
+    setSelectedQuestionType(value);
+    // 清空当前示例，让用户重新选择
+    onQuestionTypeExampleChange("");
   };
 
   return (
     <Card className="mb-4">
       <CardContent className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* 学科选择行 */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* 学科选择 */}
           <div className="flex items-center gap-3">
-            <Label htmlFor="subject-select" className="text-sm whitespace-nowrap">学科选择：</Label>
+            <Label htmlFor="subject-select" className="text-sm whitespace-nowrap">选择学科：</Label>
             <Select value={selectedSubject} onValueChange={onSubjectChange}>
-              <SelectTrigger id="subject-select" className="flex-1 min-w-[120px]">
-                <SelectValue placeholder="请选择学科" />
+              <SelectTrigger id="subject-select" className="w-32">
+                <SelectValue placeholder="选择学科" />
               </SelectTrigger>
               <SelectContent>
                 {subjects.map((subject) => (
@@ -143,9 +218,30 @@ export function SubjectAndTypeSelector({
             </Select>
           </div>
           
-          {/* 题型示例行 */}
+          {/* 题型选择 */}
           <div className="flex items-center gap-3">
-            <Label htmlFor="question-type-example" className="text-sm whitespace-nowrap">题型示例：</Label>
+            <Label htmlFor="question-type-select" className="text-sm whitespace-nowrap">选择题型：</Label>
+            <Select 
+              value={selectedQuestionType} 
+              onValueChange={handleQuestionTypeChange}
+              disabled={!selectedSubject}
+            >
+              <SelectTrigger id="question-type-select" className="w-32">
+                <SelectValue placeholder="选择题型" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableQuestionTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* 题型示例 */}
+          <div className="flex items-center gap-3">
+            <Label htmlFor="question-type-example" className="text-sm whitespace-nowrap">结构示例：</Label>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Input
@@ -153,24 +249,27 @@ export function SubjectAndTypeSelector({
                   value={questionTypeExample}
                   onClick={handleInputClick}
                   readOnly
-                  placeholder="点击输入题型结构示例"
+                  placeholder={selectedSubject && selectedQuestionType ? "点击设置题型结构" : "请先选择学科和题型"}
                   className="flex-1 cursor-pointer overflow-hidden text-ellipsis"
+                  disabled={!selectedSubject || !selectedQuestionType}
                 />
               </DialogTrigger>
               <DialogContent className="max-w-md">
-                <DialogTitle>题型及结构示例</DialogTitle>
+                <DialogTitle>设置 {selectedSubject} - {selectedQuestionType} 结构示例</DialogTitle>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="example-textarea">请输入题型及题型结构示例</Label>
+                    <Label htmlFor="example-textarea">题型结构示例（每行一个要素）</Label>
                     <Textarea
                       id="example-textarea"
                       value={tempExample}
                       onChange={(e) => setTempExample(e.target.value)}
-                      placeholder="例如：单选题、阅读理解、解答题等&#10;&#10;可以包含题型特征描述：&#10;- 单选题：A、B、C、D四个选项&#10;- 阅读理解：包含文章和若干问题&#10;- 解答题：需要详细解答过程"
-                      className="min-h-[120px] resize-none"
+                      placeholder="请输入题型结构，建议每个要素独立一行..."
+                      className="min-h-[120px] resize-none font-mono"
                       autoFocus
-                      onBlur={handleDialogClose}
                     />
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    💡 提示：系统已根据选择的学科和题型预填充常见结构，您可以修改或添加更多细节
                   </div>
                   <div className="flex justify-end gap-2">
                     <Button 
