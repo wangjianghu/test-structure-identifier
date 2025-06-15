@@ -192,8 +192,8 @@ const Index = () => {
               <SubjectAndTypeSelector
                 selectedSubject={selectedSubject}
                 onSubjectChange={setSelectedSubject}
-                structureExample={questionTypeExample}
-                onStructureExampleChange={setQuestionTypeExample}
+                questionTypeExample={questionTypeExample}
+                onQuestionTypeExampleChange={setQuestionTypeExample}
               />
 
               <QuestionInput />

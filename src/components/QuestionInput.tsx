@@ -17,8 +17,8 @@ export function QuestionInput() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedSubject, setSelectedSubject] = useState<string | undefined>(undefined);
-  const [structureExample, setStructureExample] = useState<string | undefined>(undefined);
+  const [selectedSubject, setSelectedSubject] = useState<string>('');
+  const [questionTypeExample, setQuestionTypeExample] = useState<string>('');
   const { toast } = useToast();
   const { analyzeText, analyzeImage } = useOCR();
   const { addTextToHistory, addImageToHistory } = useOCRHistory();
@@ -37,7 +37,7 @@ export function QuestionInput() {
 
         const analysisResult = await analyzeText(inputText);
         if (analysisResult) {
-          addTextToHistory(inputText, analysisResult, selectedSubject, structureExample);
+          addTextToHistory(inputText, analysisResult, selectedSubject, questionTypeExample);
           toast({
             title: "文本分析完成",
             description: "我们已经成功分析了您输入的文本。",
@@ -77,11 +77,11 @@ export function QuestionInput() {
             },
             preprocessingSteps: [],
             processingTime: 0
-          }, undefined, selectedSubject, structureExample);
+          }, undefined, selectedSubject, questionTypeExample);
 
           const analysisResult = await analyzeImage(file);
           if (analysisResult) {
-            addImageToHistory(file, analysisResult.ocrResult, analysisResult.parsedQuestion, selectedSubject, structureExample);
+            addImageToHistory(file, analysisResult.ocrResult, analysisResult.parsedQuestion, selectedSubject, questionTypeExample);
             toast({
               title: `${file.name} 分析完成`,
               description: `我们已经成功分析了您选择的图片 ${file.name}。`,
@@ -125,8 +125,8 @@ export function QuestionInput() {
           <SubjectAndTypeSelector
             selectedSubject={selectedSubject}
             onSubjectChange={setSelectedSubject}
-            structureExample={structureExample}
-            onStructureExampleChange={setStructureExample}
+            questionTypeExample={questionTypeExample}
+            onQuestionTypeExampleChange={setQuestionTypeExample}
           />
           
           <Tabs value={inputMode} onValueChange={(value) => setInputMode(value as 'text' | 'image')}>
