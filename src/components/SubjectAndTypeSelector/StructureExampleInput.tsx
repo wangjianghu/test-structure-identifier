@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { questionStructureTemplates } from "./SubjectData";
@@ -22,7 +22,7 @@ export function StructureExampleInput({
   onQuestionTypeExampleChange,
   onSave,
 }: StructureExampleInputProps) {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [tempExample, setTempExample] = useState(questionTypeExample);
 
   const getTemplate = () => {
@@ -36,11 +36,11 @@ export function StructureExampleInput({
   const handleInputClick = () => {
     const template = getTemplate();
     setTempExample(questionTypeExample || template);
-    setIsDialogOpen(true);
+    setIsPopoverOpen(true);
   };
 
-  const handleDialogClose = async () => {
-    setIsDialogOpen(false);
+  const handleSave = async () => {
+    setIsPopoverOpen(false);
     onQuestionTypeExampleChange(tempExample);
     
     if (tempExample && tempExample !== questionTypeExample && selectedSubject && selectedQuestionType) {
@@ -53,8 +53,8 @@ export function StructureExampleInput({
   return (
     <div className="flex items-center gap-3">
       <Label htmlFor="question-type-example" className="text-sm whitespace-nowrap">题型结构示例：</Label>
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogTrigger asChild>
+      <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+        <PopoverTrigger asChild>
           <Input
             id="question-type-example"
             value={displayValue}
@@ -64,38 +64,51 @@ export function StructureExampleInput({
             className="flex-1 cursor-pointer overflow-hidden text-ellipsis"
             disabled={!selectedSubject || !selectedQuestionType}
           />
-        </DialogTrigger>
-        <DialogContent className="max-w-md">
-          <DialogTitle>设置 {selectedSubject} - {selectedQuestionType} 结构示例</DialogTitle>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="example-textarea">题型结构示例（每行一个要素）</Label>
-              <Textarea
-                id="example-textarea"
-                value={tempExample}
-                onChange={(e) => setTempExample(e.target.value)}
-                placeholder={getTemplate() || "请输入题型结构，建议每个要素独立一行..."}
-                className="min-h-[120px] resize-none font-mono"
-                autoFocus
-              />
-            </div>
-            <div className="text-xs text-muted-foreground">
-              💡 提示：系统已根据选择的学科和题型预填充常见结构，您可以修改或添加更多细节
+        </PopoverTrigger>
+        <PopoverContent 
+          className="w-96 p-0" 
+          side="bottom" 
+          align="start"
+          sideOffset={4}
+        >
+          <div className="p-4 space-y-4">
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm">
+                设置 {selectedSubject} - {selectedQuestionType} 结构示例
+              </h4>
+              <div>
+                <Label htmlFor="example-textarea" className="text-xs text-muted-foreground">
+                  题型结构示例（每行一个要素）
+                </Label>
+                <Textarea
+                  id="example-textarea"
+                  value={tempExample}
+                  onChange={(e) => setTempExample(e.target.value)}
+                  placeholder={getTemplate() || "请输入题型结构，建议每个要素独立一行..."}
+                  className="mt-1 resize-none font-mono text-sm"
+                  rows={10}
+                  autoFocus
+                />
+              </div>
+              <div className="text-xs text-muted-foreground">
+                💡 提示：系统已根据选择的学科和题型预填充常见结构，您可以修改或添加更多细节
+              </div>
             </div>
             <div className="flex justify-end gap-2">
               <Button 
                 variant="outline" 
-                onClick={() => setIsDialogOpen(false)}
+                size="sm"
+                onClick={() => setIsPopoverOpen(false)}
               >
                 取消
               </Button>
-              <Button onClick={handleDialogClose}>
+              <Button size="sm" onClick={handleSave}>
                 确定
               </Button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }

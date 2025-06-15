@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Github, Zap } from "lucide-react";
@@ -17,8 +18,8 @@ const Index = () => {
   const [analysisResult, setAnalysisResult] = useState<ParsedQuestion | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isOcrLoading, setIsOcrLoading] = useState(false);
-  const [ocrResult, setOcrResult] = useState<OCRResult | null>(null);
-  const [currentImageHistoryId, setCurrentImageHistoryId] = useState<string | null>(null);
+  const [ocrResults, setOcrResults] = useState<OCRResult[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   
   // 新增状态
   const [selectedSubject, setSelectedSubject] = useState("");
@@ -35,112 +36,129 @@ const Index = () => {
     exportHistory 
   } = useOCRHistory();
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     setIsLoading(true);
-    // 模拟处理时间
-    setTimeout(() => {
-      const result = parseQuestion(inputText);
-      setAnalysisResult(result);
-      
-      // 记录分析结果到历史
-      if (currentImageHistoryId) {
-        // 如果当前是图片输入，更新对应的历史记录
-        updateHistoryItemAnalysis(currentImageHistoryId, result);
-        setCurrentImageHistoryId(null);
-      } else {
-        // 如果是文本输入，添加新的历史记录
-        addTextToHistory(inputText, result, selectedSubject, questionTypeExample);
-      }
-      
-      setIsLoading(false);
-    }, 500);
-  };
-
-  const processImageFile = useCallback(async (file: File) => {
-    if (isOcrLoading) return;
-    setIsOcrLoading(true);
     setAnalysisResult(null);
-    setOcrResult(null);
-    setCurrentImageHistoryId(null);
-    
-    toast.info("开始高级 OCR 处理...", {
-      description: "正在进行图像预处理、文字识别和智能分析。",
-    });
-    
-    const enhancedOCR = new EnhancedOCR();
     
     try {
-      const result = await enhancedOCR.processImage(file);
+      let finalText = inputText;
       
-      console.log('Enhanced OCR 结果:', result);
-      
-      setOcrResult(result);
-      setInputText(result.text);
-      
-      // 添加到历史记录
-      const historyItem = await addImageToHistory(file, result, undefined, selectedSubject, questionTypeExample);
-      setCurrentImageHistoryId(historyItem.id);
-      
-      // 显示处理结果
-      if (result.classification.isQuestion) {
-        toast.success("识别完成！检测到试题内容", {
-          description: `OCR置信度: ${result.confidence.toFixed(1)}%, 分类置信度: ${(result.classification.confidence * 100).toFixed(1)}%`,
+      // 如果有上传的图片，先进行OCR识别
+      if (uploadedImages.length > 0) {
+        setIsOcrLoading(true);
+        toast.info("开始处理上传的图片...", {
+          description: `正在识别 ${uploadedImages.length} 张图片中的文字内容。`,
         });
-      } else {
-        toast.warning("识别完成，但可能不是试题", {
-          description: `OCR置信度: ${result.confidence.toFixed(1)}%, 建议检查内容`,
-        });
+        
+        const enhancedOCR = new EnhancedOCR();
+        const results: OCRResult[] = [];
+        
+        for (let i = 0; i < uploadedImages.length; i++) {
+          const file = uploadedImages[i];
+          toast.info(`正在处理第 ${i + 1} 张图片...`, {
+            description: `文件：${file.name}`,
+          });
+          
+          try {
+            const result = await enhancedOCR.processImage(file);
+            results.push(result);
+            
+            // 添加到历史记录
+            await addImageToHistory(file, result, undefined, selectedSubject, questionTypeExample);
+          } catch (err) {
+            console.error(`处理图片 ${file.name} 失败:`, err);
+            toast.error(`处理图片 ${file.name} 失败`, {
+              description: "请检查图片质量或稍后重试。",
+            });
+          }
+        }
+        
+        enhancedOCR.destroy();
+        setOcrResults(results);
+        
+        // 合并所有OCR识别的文本
+        const ocrTexts = results.map(r => r.text).filter(t => t.trim());
+        if (ocrTexts.length > 0) {
+          finalText = ocrTexts.join('\n\n');
+          setInputText(finalText);
+        }
+        
+        setIsOcrLoading(false);
+        
+        if (results.length > 0) {
+          toast.success(`成功识别 ${results.length} 张图片`, {
+            description: `平均置信度: ${(results.reduce((sum, r) => sum + r.confidence, 0) / results.length).toFixed(1)}%`,
+          });
+        }
       }
       
-    } catch (err) {
-      console.error(err);
-      toast.error("高级 OCR 处理失败", {
-        description: "无法从图片中提取文字，请检查图片质量或稍后重试。",
+      // 进行题目结构分析
+      if (finalText.trim()) {
+        const result = parseQuestion(finalText);
+        setAnalysisResult(result);
+        
+        // 如果是文本输入（没有图片），添加到历史记录
+        if (uploadedImages.length === 0) {
+          addTextToHistory(finalText, result, selectedSubject, questionTypeExample);
+        }
+      }
+      
+    } catch (error) {
+      console.error('分析过程出错:', error);
+      toast.error("分析失败", {
+        description: "请检查输入内容或稍后重试。",
       });
     } finally {
-      enhancedOCR.destroy();
+      setIsLoading(false);
       setIsOcrLoading(false);
     }
-  }, [isOcrLoading, addImageToHistory, selectedSubject, questionTypeExample]);
+  };
 
-  // Reset current image history ID when text is manually changed
+  // 处理多图片上传
+  const handleImagesUpload = useCallback((newImages: File[]) => {
+    setUploadedImages(newImages);
+    setAnalysisResult(null);
+    setOcrResults([]);
+  }, []);
+
+  // 删除图片
+  const handleRemoveImage = useCallback((index: number) => {
+    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+    setOcrResults(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
+  // 处理文本变化
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputText(e.target.value);
-    setCurrentImageHistoryId(null);
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) {
-      return;
-    }
-    const file = e.target.files[0];
-    processImageFile(file);
-    e.target.value = ''; // Clear the file input
-  };
-  
+  // 处理粘贴图片
   useEffect(() => {
     const handlePaste = (event: ClipboardEvent) => {
       const items = event.clipboardData?.items;
       if (!items) return;
 
+      const imageFiles: File[] = [];
       for (const item of items) {
         if (item.type.includes('image')) {
           const file = item.getAsFile();
           if (file) {
-            event.preventDefault();
-            processImageFile(file);
-            return; // Found an image, no need to check others
+            imageFiles.push(file);
           }
         }
+      }
+      
+      if (imageFiles.length > 0) {
+        event.preventDefault();
+        setUploadedImages(prev => [...prev, ...imageFiles]);
       }
     };
 
     window.addEventListener('paste', handlePaste);
-
     return () => {
       window.removeEventListener('paste', handlePaste);
     };
-  }, [processImageFile]);
+  }, []);
 
   return (
     <div className="h-screen w-full bg-background bg-grid text-foreground flex flex-col">
@@ -181,7 +199,9 @@ const Index = () => {
               <QuestionInput
                 value={inputText}
                 onChange={handleTextChange}
-                onImageUpload={handleImageUpload}
+                onImagesUpload={handleImagesUpload}
+                uploadedImages={uploadedImages}
+                onRemoveImage={handleRemoveImage}
                 isOcrLoading={isOcrLoading}
                 disabled={isOcrLoading || isLoading}
                 onAnalyze={handleAnalyze}
@@ -189,23 +209,20 @@ const Index = () => {
               />
               
               {/* OCR 处理详情显示 */}
-              {ocrResult && (
+              {ocrResults.length > 0 && (
                 <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border">
-                  <h3 className="font-semibold mb-2 text-sm">当前 OCR 处理详情</h3>
-                  <div className="text-xs space-y-1 text-muted-foreground">
-                    <div>OCR 置信度: {ocrResult.confidence.toFixed(1)}%</div>
-                    <div>处理时间: {ocrResult.processingTime}ms</div>
-                    <div>检测学科: {ocrResult.classification.subject}</div>
-                    <div>题型: {ocrResult.classification.questionType}</div>
-                    <div>分类置信度: {(ocrResult.classification.confidence * 100).toFixed(1)}%</div>
-                    <details className="mt-2">
-                      <summary className="cursor-pointer hover:text-foreground">处理步骤</summary>
-                      <ul className="mt-1 ml-4 space-y-1">
-                        {ocrResult.preprocessingSteps.map((step, index) => (
-                          <li key={index}>• {step}</li>
-                        ))}
-                      </ul>
-                    </details>
+                  <h3 className="font-semibold mb-2 text-sm">图片 OCR 处理详情</h3>
+                  <div className="space-y-3">
+                    {ocrResults.map((result, index) => (
+                      <div key={index} className="text-xs space-y-1 text-muted-foreground border-l-2 border-blue-200 pl-3">
+                        <div className="font-medium">图片 {index + 1}:</div>
+                        <div>OCR 置信度: {result.confidence.toFixed(1)}%</div>
+                        <div>处理时间: {result.processingTime}ms</div>
+                        <div>检测学科: {result.classification.subject}</div>
+                        <div>题型: {result.classification.questionType}</div>
+                        <div>分类置信度: {(result.classification.confidence * 100).toFixed(1)}%</div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
