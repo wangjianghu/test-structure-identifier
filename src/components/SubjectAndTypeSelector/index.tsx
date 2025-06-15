@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SubjectSelector } from "./SubjectSelector";
 import { QuestionTypeSelector } from "./QuestionTypeSelector";
 import { StructureExampleInput } from "./StructureExampleInput";
+import { MistralConfig } from "@/components/MistralConfig";
 
 interface SubjectAndTypeSelectorProps {
   selectedSubject: string;
@@ -98,9 +99,9 @@ export function SubjectAndTypeSelector({
   };
 
   return (
-    <Card className="mb-4">
+    <Card className="mb-6">
       <CardContent className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-center">
           <SubjectSelector
             selectedSubject={selectedSubject}
             onSubjectChange={onSubjectChange}
@@ -119,10 +120,14 @@ export function SubjectAndTypeSelector({
             onQuestionTypeExampleChange={onQuestionTypeExampleChange}
             onSave={saveToDatabase}
           />
+          
+          <div className="flex justify-end">
+            <MistralConfig />
+          </div>
         </div>
         
         {(selectedSubject || questionTypeExample) && (
-          <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-sm text-blue-700 dark:text-blue-300">
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm text-blue-700 dark:text-blue-300">
             <p>✨ 已设置识别优化参数，数据将自动保存到云端数据库</p>
           </div>
         )}
