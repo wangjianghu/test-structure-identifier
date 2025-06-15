@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { questionStructureTemplates from "./SubjectData";
+import { questionStructureTemplates } from "./SubjectData";
 
 interface StructureExampleInputProps {
   selectedSubject: string;
