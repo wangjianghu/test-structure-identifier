@@ -61,7 +61,7 @@ export function StructureExampleInput({
             onClick={handleInputClick}
             readOnly
             placeholder="请先选择学科和题型"
-            className="cursor-pointer overflow-hidden text-ellipsis w-full"
+            className="cursor-pointer overflow-hidden text-ellipsis w-100"
             disabled={!selectedSubject || !selectedQuestionType}
           />
         </PopoverTrigger>
