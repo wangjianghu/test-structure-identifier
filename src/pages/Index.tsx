@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Github, Zap, Image } from "lucide-react";
@@ -26,11 +26,8 @@ const Index = () => {
     }, 500);
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) {
-      return;
-    }
-    const file = e.target.files[0];
+  const processImageFile = useCallback(async (file: File) => {
+    if (isOcrLoading) return;
     setIsOcrLoading(true);
     setAnalysisResult(null);
     toast.info("开始识别图片中的文字...", {
@@ -49,9 +46,41 @@ const Index = () => {
       });
     } finally {
       setIsOcrLoading(false);
-      e.target.value = ''; // Clear the file input
     }
+  }, [isOcrLoading]);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) {
+      return;
+    }
+    const file = e.target.files[0];
+    processImageFile(file);
+    e.target.value = ''; // Clear the file input
   };
+  
+  useEffect(() => {
+    const handlePaste = (event: ClipboardEvent) => {
+      const items = event.clipboardData?.items;
+      if (!items) return;
+
+      for (const item of items) {
+        if (item.type.includes('image')) {
+          const file = item.getAsFile();
+          if (file) {
+            event.preventDefault();
+            processImageFile(file);
+            return; // Found an image, no need to check others
+          }
+        }
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+
+    return () => {
+      window.removeEventListener('paste', handlePaste);
+    };
+  }, [processImageFile]);
 
   return (
     <div className="min-h-screen w-full bg-background bg-grid text-foreground flex flex-col items-center p-4 sm:p-8">
@@ -81,7 +110,7 @@ const Index = () => {
           <Textarea
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="在此处粘贴试题文本，或从图片识别..."
+            placeholder="在此处粘贴试题文本或图片..."
             className="min-h-[150px] text-base shadow-sm"
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
