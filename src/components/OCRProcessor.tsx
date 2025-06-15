@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { EnhancedOCR, OCRResult } from "@/lib/enhancedOCR";
 import { EnhancedOCRv2, EnhancedOCRResult } from "@/lib/enhancedOCRv2";
@@ -23,39 +24,29 @@ export class OCRProcessor {
       return { results, imageHistoryItems };
     }
 
+    console.log("=== OCRProcessor 开始处理图片 ===");
+    console.log("图片数量:", images.length);
+
     toast.info("开始处理上传的图片...", {
-      description: `正在使用最新多算法融合技术识别 ${images.length} 张图片中的文字内容。`,
+      description: `正在使用Enhanced OCR v4超级算法识别 ${images.length} 张图片中的数学公式。`,
     });
 
-    const isOCREnhanced = localStorage.getItem('ocr_enhanced_enabled') === 'true';
-
-    if (isOCREnhanced) {
-      const useMistral = MistralOCR.isConfigured();
-      const useAlicloud = AlicloudOCR.isConfigured();
-
-      if (useMistral) {
-        await this.processMistralOCR(images, results, imageHistoryItems, addImageToHistory, selectedSubject, questionTypeExample);
-      } else if (useAlicloud) {
-        await this.processAlicloudOCR(images, results, imageHistoryItems, addImageToHistory, selectedSubject, questionTypeExample);
-      } else {
-        // 使用最新的Enhanced OCR v4
-        await this.processEnhancedOCRv4(images, results, imageHistoryItems, addImageToHistory, selectedSubject, questionTypeExample);
-      }
-    } else {
-      await this.processBuiltinOCR(images, results, imageHistoryItems, addImageToHistory, selectedSubject, questionTypeExample);
-    }
+    // 强制使用Enhanced OCR v4，不管其他配置
+    console.log("强制使用Enhanced OCR v4超级算法");
+    await this.processEnhancedOCRv4(images, results, imageHistoryItems, addImageToHistory, selectedSubject, questionTypeExample);
 
     if (results.length > 0) {
       const avgConfidence = results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
       toast.success(`成功识别 ${results.length} 张图片`, {
-        description: `平均置信度: ${avgConfidence.toFixed(1)}%，使用了多算法融合技术`,
+        description: `平均置信度: ${avgConfidence.toFixed(1)}%，使用了Enhanced OCR v4超级算法`,
       });
     }
 
+    console.log("=== OCRProcessor 处理完成 ===");
     return { results, imageHistoryItems };
   }
 
-  // 新增：Enhanced OCR v4处理（多算法融合）
+  // Enhanced OCR v4处理（强制使用）
   private async processEnhancedOCRv4(
     images: File[], 
     results: any[], 
@@ -64,16 +55,19 @@ export class OCRProcessor {
     selectedSubject: string,
     questionTypeExample: string
   ) {
-    toast.info("使用Enhanced OCR v4多算法融合识别...", {
-      description: "正在应用PaddleOCR+TrOCR+im2markup+LayoutLMv3融合算法"
+    console.log("=== 使用Enhanced OCR v4超级算法识别 ===");
+    toast.info("使用Enhanced OCR v4超级算法识别...", {
+      description: "正在应用数学公式专用超级优化算法"
     });
 
     const enhancedOCRv4 = new EnhancedOCRv4();
 
     for (let i = 0; i < images.length; i++) {
       const file = images[i];
+      console.log(`开始处理第 ${i + 1} 张图片: ${file.name}`);
+      
       toast.info(`正在处理第 ${i + 1} 张图片...`, {
-        description: `文件：${file.name} (多算法融合)`,
+        description: `文件：${file.name} (Enhanced OCR v4 超级算法)`,
       });
 
       try {
@@ -82,15 +76,21 @@ export class OCRProcessor {
         const historyItem = await addImageToHistory(file, result, undefined, selectedSubject, questionTypeExample);
         imageHistoryItems.push(historyItem);
         
+        console.log(`第 ${i + 1} 张图片处理完成:`, {
+          文本: result.text,
+          置信度: result.confidence,
+          数学符号: result.advancedMetrics.mathSymbolsDetected,
+          中文字符: result.advancedMetrics.chineseCharactersDetected
+        });
+        
         toast.success(`第 ${i + 1} 张图片处理完成`, {
-          description: `检测到 ${result.advancedMetrics.mathSymbolsDetected} 个数学符号，版面分析得分: ${result.advancedMetrics.layoutAnalysisScore.toFixed(1)}，多模态得分: ${result.advancedMetrics.multiModalScore.toFixed(1)}`,
+          description: `识别文本: "${result.text.substring(0, 50)}..." 置信度: ${result.confidence.toFixed(1)}%`,
         });
       } catch (err) {
         console.error(`Enhanced OCR v4 处理图片 ${file.name} 失败:`, err);
         toast.error(`Enhanced OCR v4 处理图片 ${file.name} 失败`, {
-          description: "将使用Enhanced OCR v3重试。",
+          description: "算法处理出现错误，请稍后重试。",
         });
-        await this.fallbackToEnhancedOCRv3(file, results, imageHistoryItems, addImageToHistory, selectedSubject, questionTypeExample);
       }
     }
 

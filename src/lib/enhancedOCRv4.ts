@@ -1,3 +1,4 @@
+
 import { MathematicalOCRProcessor } from "./mathematicalOCRProcessor";
 import { QuestionClassifier } from "./questionClassifier";
 import { EnhancedOCRv4Result } from "./ocr/types";
@@ -21,23 +22,37 @@ export class EnhancedOCRv4 {
     const preprocessingSteps: string[] = [];
 
     try {
+      console.log("=== Enhanced OCR v4 Super 开始处理 ===");
+      console.log("原始图片信息:", { name: file.name, size: file.size, type: file.type });
+
       // 1. 超级增强的数学试题专用预处理
+      console.log("1. 开始超级增强预处理...");
       preprocessingSteps.push("启动超级增强数学试题专用预处理算法");
       const enhancedImage = await ImagePreprocessor.superEnhancedPreprocessing(file, preprocessingSteps);
+      console.log("预处理完成，图片尺寸:", enhancedImage.size);
 
       // 2. 多尺度多配置并行识别
+      console.log("2. 开始多尺度多配置并行识别...");
       preprocessingSteps.push("执行多尺度多配置并行识别");
       const parallelResults = await TesseractRecognizer.multiScaleParallelRecognition(enhancedImage, preprocessingSteps);
+      console.log("并行识别完成，结果数量:", parallelResults.length);
 
       // 3. 智能结果融合与后处理
+      console.log("3. 开始智能结果融合与专业后处理...");
       preprocessingSteps.push("开始智能结果融合与专业后处理");
       const fusedResult = ResultProcessor.intelligentResultFusion(parallelResults, preprocessingSteps);
+      console.log("结果融合完成，最终文本:", fusedResult.text);
       
       // 4. 增强文本分类
+      console.log("4. 开始增强文本分类...");
       const classification = this.classifier.classify(fusedResult.text);
       
       const processingTime = Date.now() - startTime;
       preprocessingSteps.push(`超级算法处理完成，总耗时: ${processingTime}ms`);
+
+      console.log("=== Enhanced OCR v4 Super 处理完成 ===");
+      console.log("最终识别结果:", fusedResult.text);
+      console.log("最终置信度:", fusedResult.confidence);
 
       return {
         text: fusedResult.text,
