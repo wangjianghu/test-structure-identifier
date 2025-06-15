@@ -1,4 +1,3 @@
-
 export interface ParsedQuestion {
   subject: string;
   questionNumber: string | null;
@@ -115,11 +114,11 @@ export function parseQuestion(text: string): ParsedQuestion {
     remainingText = remainingText.replace(/^(?<number>\d+)\s*[.\uff0e\s]/, "").trim();
   }
 
-  // 提取选项
+  // 提取选项 - 更新正则表达式以支持大小写字母
   const options: { key: string; value: string }[] = [];
-  const optionRegex = /(?<key>[A-Z])\s*[.\uff0e\s](?<value>.*?)(?=\s[A-Z][.\uff0e\s]|$)/g;
+  const optionRegex = /(?<key>[A-Za-z])\s*[.\uff0e\s](?<value>.*?)(?=\s[A-Za-z][.\uff0e\s]|$)/g;
   
-  const firstOptionMatch = remainingText.match(/\s([A-Z])\s*[.\uff0e\s]/);
+  const firstOptionMatch = remainingText.match(/\s([A-Za-z])\s*[.\uff0e\s]/);
   let body = remainingText;
   
   if (firstOptionMatch && firstOptionMatch.index) {
@@ -272,11 +271,11 @@ function parseCompositeQuestion(text: string, formulaInfo: any): ParsedQuestion 
     const subBody = subMatch[4].trim();
     
     if (subNumber && subBody) {
-      // 检查是否有选项
-      const optionRegex = /([A-Z])\s*[.\uff0e\s](.*?)(?=\s[A-Z][.\uff0e\s]|$)/g;
+      // 检查是否有选项 - 更新为支持大小写字母
+      const optionRegex = /([A-Za-z])\s*[.\uff0e\s](.*?)(?=\s[A-Za-z][.\uff0e\s]|$)/g;
       const options: { key: string; value: string }[] = [];
       
-      const firstOptionMatch = subBody.match(/\s([A-Z])\s*[.\uff0e\s]/);
+      const firstOptionMatch = subBody.match(/\s([A-Za-z])\s*[.\uff0e\s]/);
       let cleanSubBody = subBody;
       
       if (firstOptionMatch && firstOptionMatch.index) {
