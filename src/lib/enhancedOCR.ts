@@ -1,6 +1,6 @@
 
 import { createWorker, PSM, OEM } from "tesseract.js";
-import { ImagePreprocessor } from "./imagePreprocessor";
+import { ImagePreprocessor } from "./ocr/imagePreprocessor";
 import { QuestionClassifier, ClassificationResult } from "./questionClassifier";
 
 export interface OCRResult {
