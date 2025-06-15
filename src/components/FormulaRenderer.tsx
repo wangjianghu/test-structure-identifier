@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 
 interface FormulaRendererProps {
@@ -146,8 +147,15 @@ export function FormulaRenderer({ content, className = "" }: FormulaRendererProp
   const hasMathSymbols = /[∫∑∏√²³¹⁰±∩∪∈∉⊂⊃∅∠∴∵∝∂∆∇αβγδεθλμπσφω≤≥≠≈×÷·]/.test(processedContent);
 
   return (
-    <span className={`formula-content ${className} ${hasMathSymbols ? 'font-mono text-blue-700' : ''}`}>
-      {processedContent}
-    </span>
+    <div className={`formula-content ${className} ${hasMathSymbols ? 'font-mono text-blue-700' : ''}`}>
+      <div className="whitespace-pre-wrap break-words">
+        {processedContent.split('\n').map((line, index) => (
+          <div key={index} className={index > 0 ? 'mt-2' : ''}>
+            {line}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
+

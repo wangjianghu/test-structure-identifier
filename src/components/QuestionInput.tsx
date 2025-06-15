@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { Textarea, type TextareaProps } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { Image as ImageIcon, Zap, X, Eye, Trash2, RotateCcw } from "lucide-react
 import { cn } from "@/lib/utils";
 import { ImageViewDialog } from "./ImageViewDialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FormulaRenderer } from "./FormulaRenderer";
 
 interface QuestionInputProps extends Omit<TextareaProps, 'className'> {
   onImagesUpload: (files: File[]) => void;
@@ -35,11 +37,20 @@ export function QuestionInput({
     const saved = localStorage.getItem('clearOptimizationParams');
     return saved ? JSON.parse(saved) : false;
   });
+  const [showFormulaPreview, setShowFormulaPreview] = React.useState(() => {
+    // 从 localStorage 读取公式预览状态
+    const saved = localStorage.getItem('showFormulaPreview');
+    return saved ? JSON.parse(saved) : true;
+  });
 
   // 持久化状态到 localStorage
   React.useEffect(() => {
     localStorage.setItem('clearOptimizationParams', JSON.stringify(clearOptimizationParams));
   }, [clearOptimizationParams]);
+
+  React.useEffect(() => {
+    localStorage.setItem('showFormulaPreview', JSON.stringify(showFormulaPreview));
+  }, [showFormulaPreview]);
 
   React.useEffect(() => {
     // 创建图片预览URLs
@@ -80,11 +91,35 @@ export function QuestionInput({
     return null;
   };
 
+  // 检测数学公式
+  const detectMathFormulas = (text: string) => {
+    const patterns = [
+      /\$\$[^$]+\$\$/g,           // 块级公式 $$...$$
+      /\$[^$\n]+\$/g,            // 行内公式 $...$
+      /\\begin\{[^}]+\}.*?\\end\{[^}]+\}/gs,  // LaTeX环境
+      /\\[a-zA-Z]+\{[^}]*\}/g,   // LaTeX命令 \command{...}
+      /\\[a-zA-Z]+/g,            // 简单LaTeX命令 \alpha, \beta等
+      /\\\([^)]+\\\)/g,          // 行内公式 \(...\)
+      /\\\[[^\]]+\\\]/g,         // 块级公式 \[...\]
+      /[≤≥≠∞∑∫√²³¹⁰±∩∪∈∉⊂⊃∅∠∴∵∝∂∆∇]/,  // 数学符号
+      /f\(x\)|sin|cos|tan|log|ln/, // 数学函数
+    ];
+
+    return patterns.some(pattern => pattern.test(text));
+  };
+
   const currentTextType = React.useMemo(() => {
     if (typeof value === 'string' && value.trim()) {
       return detectProgrammingText(value);
     }
     return null;
+  }, [value]);
+
+  const hasMathFormulas = React.useMemo(() => {
+    if (typeof value === 'string' && value.trim()) {
+      return detectMathFormulas(value);
+    }
+    return false;
   }, [value]);
 
   const handleClear = () => {
@@ -115,6 +150,42 @@ export function QuestionInput({
           <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
             检测到 {currentTextType.toUpperCase()} 代码格式
           </span>
+        </div>
+      )}
+
+      {/* 数学公式预览 */}
+      {hasMathFormulas && showFormulaPreview && typeof value === 'string' && (
+        <div className="px-3 py-3 bg-green-50 dark:bg-green-900/20 border-t border-green-200 dark:border-green-800">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+              数学公式预览 (LaTeX/MathType渲染)
+            </span>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setShowFormulaPreview(false)}
+              className="h-6 w-6 p-0 text-green-600 hover:text-green-700"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+          <div className="text-sm text-green-700 dark:text-green-300 bg-white dark:bg-green-950/30 rounded p-2 border border-green-200 dark:border-green-800">
+            <FormulaRenderer content={value} />
+          </div>
+        </div>
+      )}
+
+      {/* 重新显示公式预览按钮 */}
+      {hasMathFormulas && !showFormulaPreview && (
+        <div className="px-3 py-2 bg-green-50 dark:bg-green-900/20 border-t border-green-200 dark:border-green-800">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setShowFormulaPreview(true)}
+            className="text-xs text-green-600 dark:text-green-400 hover:text-green-700"
+          >
+            显示数学公式预览
+          </Button>
         </div>
       )}
       

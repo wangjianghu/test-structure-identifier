@@ -1,4 +1,5 @@
 
+
 import { createWorker, PSM, OEM } from "tesseract.js";
 import { MathematicalOCRProcessor } from "./mathematicalOCRProcessor";
 import { QuestionClassifier, ClassificationResult } from "./questionClassifier";
@@ -135,16 +136,25 @@ export class EnhancedOCRv3 {
       textord_equation_detect: '1',
       textord_tabfind_find_tables: '1',
       preserve_interword_spaces: '1',
-      user_defined_dpi: '800', // 提高到800DPI
-      tessedit_char_whitelist: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz一二三四五六七八九十零百千万亿的是有在了和对上大中小到为不得可以会用从被把这那里个了着么什没了已过又要下去来回还都能与就其所以及将对于求解分析判断证明计算已知设若则因为所以由于根据可得函数方程不等式集合概率统计几何代数三角微积分数学题目选择填空解答证明.,()[]{}=+-×÷≤≥≠∞∑∫√²³¹⁰±∩∪∈∉⊂⊃∅∠∴∵∝∂∆∇φψωαβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΕΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ℃℉°′″π∞∟⊥∥∽≈≡→←↑↓⇋⇌⇄⇀⇁∀∃<>|_^/\\~`!@#$%&*':;？。，、（）「」『』《》【】〈〉〖〗·…\"\"''：；！",
+      user_defined_dpi: '1000', // 提高到1000DPI
+      tessedit_char_whitelist: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz一二三四五六七八九十零百千万亿的是有在了和对上大中小到为不得可以会用从被把这那里个了着么什没了已过又要下去来回还都能与就其所以及将对于求解分析判断证明计算已知设若则因为所以由于根据可得函数方程不等式集合概率统计几何代数三角微积分数学题目选择填空解答证明计算若已知设定义域值域定义.,()[]{}=+-×÷≤≥≠∞∑∫√²³¹⁰±∩∪∈∉⊂⊃∅∠∴∵∝∂∆∇φψωαβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΕΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ℃℉°′″π∞∟⊥∥∽≈≡→←↑↓⇋⇌⇄⇀⇁∀∃<>|_^/\\~`!@#$%&*':;？。，、（）「」『』《》【】〈〉〖〗·…\"\"''：；！",
       classify_bln_numeric_mode: '1',
-      textord_min_linesize: '1.5', // 更小的最小行高
+      textord_min_linesize: '1.2', // 减小最小行高
       textord_heavy_nr: '1',
       textord_show_initial_words: '1',
       textord_chopper_test: '1',
-      edges_max_children_per_outline: '40',
-      edges_children_count_limit: '45',
-      edges_min_nonhole: '12'
+      edges_max_children_per_outline: '50',
+      edges_children_count_limit: '55',
+      edges_min_nonhole: '8',
+      // 新增参数优化数学公式识别
+      classify_integer_matcher_multiplier: '10',
+      classify_class_pruner_multiplier: '15',
+      segment_penalty_dict_nonword: '1.25',
+      segment_penalty_dict_frequent_word: '1.0',
+      segment_penalty_dict_case_ok: '1.1',
+      segment_penalty_dict_case_bad: '1.3125',
+      segment_penalty_garbage: '1.50',
+      segment_penalty_ngram_best_choice: '1.24'
     });
 
     const { data: { text, confidence } } = await worker.recognize(file);
@@ -164,14 +174,21 @@ export class EnhancedOCRv3 {
       tessedit_ocr_engine_mode: OEM.LSTM_ONLY,
       textord_equation_detect: '1',
       textord_tabfind_find_tables: '1',
-      user_defined_dpi: '800',
+      user_defined_dpi: '1000',
       classify_enable_learning: '1',
       classify_enable_adaptive_matcher: '1',
-      tessedit_char_whitelist: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz()[]{}=+-×÷≤≥≠∞∑∫√²³¹⁰±∩∪∈∉⊂⊃∅∠∴∵∝∂∆∇φψωαβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΕΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩπ∞∟⊥∥∽≈≡→←↑↓⇋⇌⇄⇀⇁∀∃<>|_^/\\~`!@#$%&*':;.,",
+      tessedit_char_whitelist: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz()[]{}=+-×÷≤≥≠∞∑∫√²³¹⁰±∩∪∈∉⊂⊃∅∠∴∵∝∂∆∇φψωαβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΕΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩπ∞∟⊥∥∽≈≡→←↑↓⇋⇌⇄⇀⇁∀∃<>|_^/\\~`!@#$%&*':;.,sin cos tan log ln exp lim",
       preserve_interword_spaces: '1',
-      textord_min_linesize: '1.0',
+      textord_min_linesize: '0.8',
       textord_spline_minblobs: '1',
-      textord_spline_mediancut: '1'
+      textord_spline_mediancut: '1',
+      // 增强数学符号识别
+      classify_adapt_proto_threshold: '230',
+      classify_adapt_feature_threshold: '230',
+      matcher_good_threshold: '0.125',
+      matcher_reliable_adaptive_result: '0.0',
+      matcher_perfect_threshold: '0.02',
+      matcher_bad_match_pad: '0.15'
     });
 
     const { data: { text, confidence } } = await worker.recognize(file);
@@ -190,12 +207,18 @@ export class EnhancedOCRv3 {
       tessedit_pageseg_mode: PSM.AUTO_OSD,
       tessedit_ocr_engine_mode: OEM.LSTM_ONLY,
       textord_equation_detect: '1',
-      user_defined_dpi: '700',
+      user_defined_dpi: '900',
       preserve_interword_spaces: '1',
       classify_enable_learning: '1',
-      textord_min_linesize: '2.0',
+      textord_min_linesize: '1.5',
       tessedit_resegment_from_boxes: '1',
-      tessedit_resegment_from_line_boxes: '1'
+      tessedit_resegment_from_line_boxes: '1',
+      // 优化中英文混合识别
+      language_model_ngram_on: '1',
+      language_model_ngram_order: '8',
+      language_model_ngram_use_only_first_uft8_step: '1',
+      language_model_penalty_non_freq_dict_word: '0.1',
+      language_model_penalty_non_dict_word: '0.15'
     });
 
     const { data: { text, confidence } } = await worker.recognize(file);
@@ -213,12 +236,17 @@ export class EnhancedOCRv3 {
     await worker.setParameters({
       tessedit_pageseg_mode: PSM.SINGLE_CHAR,
       tessedit_ocr_engine_mode: OEM.LSTM_ONLY,
-      user_defined_dpi: '1000', // 超高DPI用于小字符
+      user_defined_dpi: '1200', // 超高DPI用于小字符
       classify_enable_learning: '1',
       classify_enable_adaptive_matcher: '1',
-      tessedit_char_whitelist: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+-=()[]{}",
-      textord_min_linesize: '0.5', // 极小的行高用于上下标
-      edges_min_nonhole: '6'
+      tessedit_char_whitelist: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+-=()[]{}πσμλθφψωαβγδεζητικνξοπρστυχ",
+      textord_min_linesize: '0.3', // 极小的行高用于上下标
+      edges_min_nonhole: '4',
+      // 针对小字符优化
+      tessedit_char_unblacklist_fraction: '0.0',
+      classify_char_norm_range: '0.2',
+      classify_min_norm_scale_x: '0.0',
+      classify_max_norm_scale_x: '0.325'
     });
 
     const { data: { text, confidence } } = await worker.recognize(file);
@@ -253,28 +281,28 @@ export class EnhancedOCRv3 {
   private calculateMathResultScore(result: {text: string, confidence: number, config: string}): number {
     const { text, confidence } = result;
     
-    // 基础置信度权重 (30%)
-    let score = confidence * 0.3;
+    // 基础置信度权重 (25%)
+    let score = confidence * 0.25;
     
-    // 数学符号丰富度 (25%)
+    // 数学符号丰富度 (30%)
     const mathSymbolCount = (text.match(/[=+\-×÷≤≥≠∞∑∫√²³¹⁰±∩∪∈∉⊂⊃∅∠∴∵()[\]{}]/g) || []).length;
-    const mathSymbolRatio = Math.min(mathSymbolCount / 10, 1); // 最多10个符号得满分
-    score += 25 * mathSymbolRatio;
+    const mathSymbolRatio = Math.min(mathSymbolCount / 8, 1);
+    score += 30 * mathSymbolRatio;
     
-    // 中文数学术语检测 (20%)
-    const mathTerms = ['函数', '方程', '不等式', '集合', '已知', '求解', '证明', '计算', '分析', '判断'];
+    // 中文数学术语检测 (25%)
+    const mathTerms = ['函数', '方程', '不等式', '集合', '已知', '求解', '证明', '计算', '分析', '判断', '定义域', '值域', '定义', '若', '则'];
     let termCount = 0;
     for (const term of mathTerms) {
       if (text.includes(term)) termCount++;
     }
-    score += 20 * Math.min(termCount / 5, 1);
+    score += 25 * Math.min(termCount / 4, 1);
     
-    // 文本长度合理性 (15%)
+    // 文本长度合理性 (10%)
     const textLength = text.trim().length;
     if (textLength > 20 && textLength < 1000) {
-      score += 15;
+      score += 10;
     } else if (textLength > 10) {
-      score += 8;
+      score += 5;
     }
     
     // 结构化特征 (10%)
@@ -307,6 +335,9 @@ export class EnhancedOCRv3 {
     
     // 6. 题目编号和选项修复
     processedText = this.repairQuestionNumbersAndOptions(processedText);
+
+    // 7. 特殊数学函数修复
+    processedText = this.repairMathFunctions(processedText);
     
     return processedText;
   }
@@ -330,7 +361,7 @@ export class EnhancedOCRv3 {
       .replace(/[∅]\s*/g, '∅')
       // 修复函数表示
       .replace(/f\s*\(\s*x\s*\)/g, 'f(x)')
-      .replace(/y\s*=\s*/g, 'y=')
+      .replace(/y\s*=\s*/g, 'y = ')
       // 修复分数表示
       .replace(/(\d+)\s*[/／]\s*(\d+)/g, '$1/$2')
       // 修复指数表示
@@ -342,7 +373,17 @@ export class EnhancedOCRv3 {
       .replace(/√\s*\(/g, '√(')
       // 修复积分和求和符号
       .replace(/∫\s*/g, '∫')
-      .replace(/∑\s*/g, '∑');
+      .replace(/∑\s*/g, '∑')
+      // 修复常见OCR错误
+      .replace(/[()]/g, (match, offset, string) => {
+        // 智能判断括号类型
+        const before = string.substring(Math.max(0, offset - 3), offset);
+        const after = string.substring(offset + 1, Math.min(string.length, offset + 4));
+        if (/[\u4e00-\u9fff]/.test(before) || /[\u4e00-\u9fff]/.test(after)) {
+          return match === '(' ? '（' : '）';
+        }
+        return match;
+      });
   }
 
   // 修复中文数学术语
@@ -351,7 +392,8 @@ export class EnhancedOCRv3 {
       ['已', '知'], ['函', '数'], ['方', '程'], ['不', '等', '式'], 
       ['集', '合'], ['概', '率'], ['统', '计'], ['几', '何'],
       ['证', '明'], ['计', '算'], ['求', '解'], ['分', '析'],
-      ['判', '断'], ['选', '择'], ['填', '空'], ['解', '答']
+      ['判', '断'], ['选', '择'], ['填', '空'], ['解', '答'],
+      ['定', '义', '域'], ['值', '域'], ['定', '义']
     ];
     
     let result = text;
@@ -427,7 +469,28 @@ export class EnhancedOCRv3 {
       .trim();
   }
 
+  // 新增: 修复数学函数
+  private repairMathFunctions(text: string): string {
+    return text
+      // 修复三角函数
+      .replace(/sin\s*x/g, 'sin x')
+      .replace(/cos\s*x/g, 'cos x')
+      .replace(/tan\s*x/g, 'tan x')
+      // 修复对数函数
+      .replace(/log\s*(\w)/g, 'log $1')
+      .replace(/ln\s*(\w)/g, 'ln $1')
+      // 修复分段函数格式
+      .replace(/\{\s*([^}]+)\s*\}/g, (match, content) => {
+        const lines = content.split(/[,，]/).map((line: string) => line.trim()).filter((line: string) => line);
+        if (lines.length > 1) {
+          return '{\n  ' + lines.join(',\n  ') + '\n}';
+        }
+        return match;
+      });
+  }
+
   destroy(): void {
     this.processor.destroy();
   }
 }
+
