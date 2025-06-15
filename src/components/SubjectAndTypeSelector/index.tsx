@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SubjectSelector } from "./SubjectSelector";
 import { QuestionTypeSelector } from "./QuestionTypeSelector";
 import { StructureExampleInput } from "./StructureExampleInput";
+import { MistralConfig } from "../MistralConfig";
 
 interface SubjectAndTypeSelectorProps {
   selectedSubject: string;
@@ -100,18 +101,26 @@ export function SubjectAndTypeSelector({
   return (
     <Card className="mb-4">
       <CardContent className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <SubjectSelector
-            selectedSubject={selectedSubject}
-            onSubjectChange={onSubjectChange}
-          />
+        <div className="space-y-4">
+          {/* 第一行：学科选择、题型选择、OCR增强 */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <SubjectSelector
+              selectedSubject={selectedSubject}
+              onSubjectChange={onSubjectChange}
+            />
+            
+            <QuestionTypeSelector
+              selectedSubject={selectedSubject}
+              selectedQuestionType={selectedQuestionType}
+              onQuestionTypeChange={handleQuestionTypeChange}
+            />
+            
+            <div className="flex justify-start md:justify-end">
+              <MistralConfig />
+            </div>
+          </div>
           
-          <QuestionTypeSelector
-            selectedSubject={selectedSubject}
-            selectedQuestionType={selectedQuestionType}
-            onQuestionTypeChange={handleQuestionTypeChange}
-          />
-          
+          {/* 第二行：题型结构示例输入 */}
           <StructureExampleInput
             selectedSubject={selectedSubject}
             selectedQuestionType={selectedQuestionType}
