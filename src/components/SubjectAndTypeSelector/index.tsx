@@ -101,7 +101,7 @@ export function SubjectAndTypeSelector({
   return (
     <Card className="mb-6">
       <CardContent className="p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 items-start">
           <SubjectSelector
             selectedSubject={selectedSubject}
             onSubjectChange={onSubjectChange}
@@ -128,7 +128,7 @@ export function SubjectAndTypeSelector({
         
         {(selectedSubject || questionTypeExample) && (
           <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm text-blue-700 dark:text-blue-300">
-            <p>✨ 已设置识别优化参数，数据将自动保存到云端数据库</p>
+            <p>✨ 已设置识别优化参数，自定义的题型结构数据将自动保存到云端用于辅助后续的题型结构识别优化</p>
           </div>
         )}
       </CardContent>

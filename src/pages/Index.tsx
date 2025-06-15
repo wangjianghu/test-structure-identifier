@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Github, Zap, PanelRightOpen, PanelRightClose } from "lucide-react";
@@ -55,9 +54,12 @@ const Index = () => {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  // 添加点击遮罩层关闭历史记录面板的处理
-  const handleOverlayClick = useCallback(() => {
-    setIsHistoryOpen(false);
+  // 修复点击遮罩层关闭历史记录面板的处理
+  const handleOverlayClick = useCallback((e: React.MouseEvent) => {
+    // 确保点击的是遮罩层本身，而不是其子元素
+    if (e.target === e.currentTarget) {
+      setIsHistoryOpen(false);
+    }
   }, []);
 
   // 添加 fallback 方法
@@ -394,28 +396,28 @@ const Index = () => {
 
           {/* 右侧：历史记录 - 响应式设计 */}
           {isHistoryOpen && (
-            <div className={`
-              w-full absolute inset-y-0 right-0 z-20 bg-background border-l 
-              lg:relative lg:w-80 lg:z-auto
-              transition-transform duration-300 ease-in-out
-            `}>
-              <div className="h-full bg-background/95 backdrop-blur-sm lg:bg-background/50">
-                <OCRHistory
-                  history={history}
-                  onRemoveItem={removeItem}
-                  onExport={exportHistory}
-                  onClear={clearHistory}
-                />
+            <>
+              {/* 遮罩层，仅在小屏幕且历史记录面板打开时显示 */}
+              <div 
+                className="fixed inset-0 bg-black/50 z-10 lg:hidden"
+                onClick={handleOverlayClick}
+              />
+              
+              <div className={`
+                w-full absolute inset-y-0 right-0 z-20 bg-background border-l 
+                lg:relative lg:w-80 lg:z-auto
+                transition-transform duration-300 ease-in-out
+              `}>
+                <div className="h-full bg-background/95 backdrop-blur-sm lg:bg-background/50">
+                  <OCRHistory
+                    history={history}
+                    onRemoveItem={removeItem}
+                    onExport={exportHistory}
+                    onClear={clearHistory}
+                  />
+                </div>
               </div>
-            </div>
-          )}
-
-          {/* 遮罩层，仅在小屏幕且历史记录面板打开时显示 */}
-          {isHistoryOpen && (
-            <div 
-              className="fixed inset-0 bg-black/50 z-10 lg:hidden"
-              onClick={handleOverlayClick}
-            />
+            </>
           )}
         </div>
       </main>
