@@ -51,7 +51,7 @@ export function StructureExampleInput({
   const displayValue = questionTypeExample || (selectedSubject && selectedQuestionType ? "点击设置题型结构示例" : "请先选择学科和题型");
 
   return (
-    <div className="flex flex-col gap-3 min-w-0 w-60">
+    <div className="flex flex-col gap-3 min-w-0 w-full max-w-[300px]">
       <Label htmlFor="question-type-example" className="text-sm whitespace-nowrap">题型结构示例：</Label>
       <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
         <PopoverTrigger asChild>
@@ -61,7 +61,7 @@ export function StructureExampleInput({
             onClick={handleInputClick}
             readOnly
             placeholder="请先选择学科和题型"
-            className="cursor-pointer overflow-hidden text-ellipsis"
+            className="cursor-pointer overflow-hidden text-ellipsis w-full"
             disabled={!selectedSubject || !selectedQuestionType}
           />
         </PopoverTrigger>

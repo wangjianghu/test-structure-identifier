@@ -101,20 +101,24 @@ export function SubjectAndTypeSelector({
   return (
     <Card className="mb-6">
       <CardContent className="p-6">
-        {/* 单行布局：选择学科、选择题型、题型结构示例、OCR 增强 */}
-        <div className="flex items-center gap-6 flex-wrap lg:flex-nowrap">
-          <SubjectSelector
-            selectedSubject={selectedSubject}
-            onSubjectChange={onSubjectChange}
-          />
+        {/* 响应式布局：大屏幕一行显示，小屏幕换行 */}
+        <div className="flex flex-wrap items-start gap-4 xl:gap-6">
+          <div className="flex-shrink-0">
+            <SubjectSelector
+              selectedSubject={selectedSubject}
+              onSubjectChange={onSubjectChange}
+            />
+          </div>
           
-          <QuestionTypeSelector
-            selectedSubject={selectedSubject}
-            selectedQuestionType={selectedQuestionType}
-            onQuestionTypeChange={handleQuestionTypeChange}
-          />
+          <div className="flex-shrink-0">
+            <QuestionTypeSelector
+              selectedSubject={selectedSubject}
+              selectedQuestionType={selectedQuestionType}
+              onQuestionTypeChange={handleQuestionTypeChange}
+            />
+          </div>
           
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-[240px]">
             <StructureExampleInput
               selectedSubject={selectedSubject}
               selectedQuestionType={selectedQuestionType}
