@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Github, Zap } from "lucide-react";
@@ -43,7 +44,7 @@ const Index = () => {
       
       await worker.setParameters({
         tessedit_char_whitelist: allowedChars,
-        tessedit_pageseg_mode: PSM.SINGLE_UNIFORM_BLOCK
+        tessedit_pageseg_mode: PSM.SINGLE_BLOCK
       });
       
       const { data: { text } } = await worker.recognize(file);
