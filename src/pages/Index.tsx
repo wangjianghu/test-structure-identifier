@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Github, Zap } from "lucide-react";
@@ -186,7 +185,7 @@ const Index = () => {
   return (
     <div className="h-screen w-full bg-background bg-grid text-foreground flex flex-col">
       <header className="w-full flex justify-between items-center p-4 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-        <h1 className="text-xl font-bold text-primary">题型分析器</h1>
+        <h1 className="text-xl font-bold text-primary">智能试题结构识别</h1>
         <a 
           href="https://github.com/lovable-dev/c5fe2474-d81b-4c79-850f-89431dfc1704" 
           target="_blank" 
@@ -201,11 +200,8 @@ const Index = () => {
         <div className="h-full flex">
           {/* 左侧：输入和分析区域 */}
           <div className="flex-1 flex flex-col p-4 overflow-y-auto">
-            <div className="text-center mb-6">
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-500 py-2">
-                智能试题结构识别
-              </h2>
-              <p className="mt-3 text-base text-muted-foreground">
+            <div className="mb-6">
+              <p className="text-base text-muted-foreground text-left">
                 粘贴试题文本或上传图片，即刻获得结构化分析。支持数学、物理、化学、语文、英语等学科的多种题型识别。
               </p>
             </div>
