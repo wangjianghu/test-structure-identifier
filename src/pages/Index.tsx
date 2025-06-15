@@ -11,6 +11,7 @@ import { OCRHistory } from "@/components/OCRHistory";
 import { useOCRHistory } from "@/hooks/useOCRHistory";
 import { SubjectAndTypeSelector } from "@/components/SubjectAndTypeSelector";
 import { MistralConfig } from "@/components/MistralConfig";
+import { AlicloudOCR, AlicloudOCRResult } from "@/lib/alicloudOCR";
 
 const exampleText = "4.已知集合M={-2,-1,0,1,2},N={x|x²-x-2≤0},则M∩(CRN)=(  )\nA.{-2,-1}\nB.{-2}\nC.{-1,0}\nD.{0}";
 
@@ -19,7 +20,7 @@ const Index = () => {
   const [analysisResult, setAnalysisResult] = useState<ParsedQuestion | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isOcrLoading, setIsOcrLoading] = useState(false);
-  const [ocrResults, setOcrResults] = useState<(OCRResult | MistralOCRResult)[]>([]);
+  const [ocrResults, setOcrResults] = useState<(OCRResult | MistralOCRResult | AlicloudOCRResult)[]>([]);
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   
   // 新增状态
@@ -52,10 +53,11 @@ const Index = () => {
           description: `正在识别 ${uploadedImages.length} 张图片中的文字内容。`,
         });
         
-        const results: (OCRResult | MistralOCRResult)[] = [];
+        const results: (OCRResult | MistralOCRResult | AlicloudOCRResult)[] = [];
         
-        // 检查是否配置了 Mistral.ai
+        // 检查配置的OCR服务
         const useMistral = MistralOCR.isConfigured();
+        const useAlicloud = AlicloudOCR.isConfigured();
         
         if (useMistral) {
           toast.info("使用 Mistral.ai 高精度识别...", {
@@ -79,24 +81,40 @@ const Index = () => {
             } catch (err) {
               console.error(`Mistral.ai 处理图片 ${file.name} 失败:`, err);
               toast.error(`Mistral.ai 处理图片 ${file.name} 失败`, {
+                description: "将尝试其他 OCR 引擎。",
+              });
+              
+              // fallback 到其他OCR
+              await fallbackToOtherOCR(file, results, imageHistoryItems, i);
+            }
+          }
+        } else if (useAlicloud) {
+          toast.info("使用阿里云 OCR 识别...", {
+            description: "正在处理图片中的文字内容"
+          });
+          
+          const alicloudOCR = new AlicloudOCR();
+          
+          for (let i = 0; i < uploadedImages.length; i++) {
+            const file = uploadedImages[i];
+            toast.info(`正在处理第 ${i + 1} 张图片...`, {
+              description: `文件：${file.name} (阿里云 OCR)`,
+            });
+            
+            try {
+              const result = await alicloudOCR.processImage(file);
+              results.push(result);
+              
+              const historyItem = await addImageToHistory(file, result, undefined, selectedSubject, questionTypeExample);
+              imageHistoryItems.push(historyItem);
+            } catch (err) {
+              console.error(`阿里云 OCR 处理图片 ${file.name} 失败:`, err);
+              toast.error(`阿里云 OCR 处理图片 ${file.name} 失败`, {
                 description: "将使用内置 OCR 引擎重试。",
               });
               
               // fallback 到内置 OCR
-              try {
-                const enhancedOCR = new EnhancedOCR();
-                const fallbackResult = await enhancedOCR.processImage(file);
-                results.push(fallbackResult);
-                enhancedOCR.destroy();
-                
-                const historyItem = await addImageToHistory(file, fallbackResult, undefined, selectedSubject, questionTypeExample);
-                imageHistoryItems.push(historyItem);
-              } catch (fallbackErr) {
-                console.error(`内置 OCR 处理图片 ${file.name} 也失败:`, fallbackErr);
-                toast.error(`处理图片 ${file.name} 失败`, {
-                  description: "请检查图片质量或稍后重试。",
-                });
-              }
+              await fallbackToBuiltinOCR(file, results, imageHistoryItems);
             }
           }
         } else {
@@ -143,7 +161,7 @@ const Index = () => {
         
         if (results.length > 0) {
           const avgConfidence = results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
-          const engineName = useMistral ? 'Mistral.ai' : '内置OCR';
+          const engineName = useMistral ? 'Mistral.ai' : useAlicloud ? '阿里云 OCR' : '内置OCR';
           toast.success(`成功识别 ${results.length} 张图片`, {
             description: `平均置信度: ${avgConfidence.toFixed(1)}% (${engineName})`,
           });
@@ -176,6 +194,24 @@ const Index = () => {
       setIsOcrLoading(false);
     }
   };
+
+  // 添加 fallback 方法
+  const fallbackToBuiltinOCR = async (file: File, results: any[], imageHistoryItems: any[]) => {
+    try {
+      const enhancedOCR = new EnhancedOCR();
+      const fallbackResult = await enhancedOCR.processImage(file);
+      results.push(fallbackResult);
+      enhancedOCR.destroy();
+      
+      const historyItem = await addImageToHistory(file, fallbackResult, undefined, selectedSubject, questionTypeExample);
+      imageHistoryItems.push(historyItem);
+    } catch (fallbackErr) {
+      console.error(`内置 OCR 处理图片 ${file.name} 也失败:`, fallbackErr);
+      toast.error(`处理图片 ${file.name} 失败`, {
+        description: "请检查图片质量或稍后重试。",
+      });
+    }
+  }
 
   // 处理多图片上传
   const handleImagesUpload = useCallback((newImages: File[]) => {
@@ -257,16 +293,16 @@ const Index = () => {
             </div>
 
             <div className="flex-1 space-y-4 max-w-4xl mx-auto w-full">
-              {/* 学科选择和题型示例输入 */}
-              <SubjectAndTypeSelector
-                selectedSubject={selectedSubject}
-                onSubjectChange={setSelectedSubject}
-                questionTypeExample={questionTypeExample}
-                onQuestionTypeExampleChange={setQuestionTypeExample}
-              />
-
-              {/* Mistral.ai OCR 配置 */}
-              <div className="flex justify-end">
+              {/* 学科选择和OCR增强配置在同一行 */}
+              <div className="flex items-end gap-4">
+                <div className="flex-1">
+                  <SubjectAndTypeSelector
+                    selectedSubject={selectedSubject}
+                    onSubjectChange={setSelectedSubject}
+                    questionTypeExample={questionTypeExample}
+                    onQuestionTypeExampleChange={setQuestionTypeExample}
+                  />
+                </div>
                 <MistralConfig />
               </div>
 
@@ -289,8 +325,9 @@ const Index = () => {
                   <h3 className="font-semibold mb-2 text-sm">图片 OCR 处理详情</h3>
                   <div className="space-y-3">
                     {ocrResults.map((result, index) => {
-                      const isMistral = !('classification' in result && 'features' in result.classification);
-                      const engineName = isMistral ? 'Mistral.ai' : '内置OCR';
+                      const isMistral = 'classification' in result && !('features' in result.classification);
+                      const isAlicloud = 'classification' in result && 'processingTime' in result && !isMistral;
+                      const engineName = isMistral ? 'Mistral.ai' : isAlicloud ? '阿里云 OCR' : '内置OCR';
                       
                       return (
                         <div key={index} className="text-xs space-y-1 text-muted-foreground border-l-2 border-blue-200 pl-3">
