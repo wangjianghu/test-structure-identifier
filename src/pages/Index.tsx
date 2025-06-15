@@ -25,164 +25,235 @@ const Index = () => {
     }, 500);
   };
 
+  // 图像预处理函数
+  const preprocessImage = (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        // 设置画布尺寸，适当放大以提高清晰度
+        const scale = Math.max(1, 1200 / Math.max(img.width, img.height));
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        
+        if (ctx) {
+          // 绘制原图
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          
+          // 获取图像数据进行处理
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageData.data;
+          
+          // 图像增强处理
+          for (let i = 0; i < data.length; i += 4) {
+            // 转换为灰度
+            const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+            
+            // 增强对比度和二值化
+            const threshold = 128;
+            const enhanced = gray > threshold ? 255 : 0;
+            
+            data[i] = enhanced;     // Red
+            data[i + 1] = enhanced; // Green  
+            data[i + 2] = enhanced; // Blue
+            // Alpha保持不变
+          }
+          
+          // 将处理后的图像数据放回画布
+          ctx.putImageData(imageData, 0, 0);
+        }
+        
+        // 转换为Blob然后为File
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const processedFile = new File([blob], file.name, { type: 'image/png' });
+            resolve(processedFile);
+          } else {
+            resolve(file);
+          }
+        }, 'image/png');
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const processImageFile = useCallback(async (file: File) => {
     if (isOcrLoading) return;
     setIsOcrLoading(true);
     setAnalysisResult(null);
     toast.info("开始识别图片中的文字...", {
-      description: "这可能需要一些时间，请稍候。",
+      description: "正在进行图像预处理和文字识别，请稍候。",
     });
+    
     try {
-      // 使用多语言支持，包括中文和英文
+      // 图像预处理
+      const processedFile = await preprocessImage(file);
+      
+      // 使用多语言支持，优先中文
       const worker = await createWorker(['chi_sim', 'eng'], 1, {
         logger: m => console.log(m)
       });
       
-      // 优化OCR设置 - 专门针对数学、化学、物理公式和科学文档
+      // 更精细的OCR参数设置
       await worker.setParameters({
+        // 页面分割模式 - 尝试更适合数学公式的模式
         tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
-        tessedit_ocr_engine_mode: OEM.LSTM_ONLY, // 使用LSTM引擎，对复杂文本效果更好
+        // OCR引擎模式
+        tessedit_ocr_engine_mode: OEM.LSTM_ONLY,
+        // 字符间距和行间距优化
         preserve_interword_spaces: '1',
-        // 扩展字符白名单，包含更多学科符号
-        tessedit_char_whitelist: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz一二三四五六七八九十零.,()[]{}=+-×÷≤≥≠∞∑∫√²³¹⁰±∩∪∈∉⊂⊃∅∠∴∵∝∂∆∇φψωαβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ℃℉°′″π∞∟⊥∥∠∠∴∵∽≈≡→←↑↓⇋⇌⇄⇀⇁∴∵∀∃抛物线焦点双曲线渐近线距离已知集合的到线为选择题ABCDHClNaOHCaCO₃SO₄NO₃NH₄HNO₃H₂SO₄NaClKBrMgFeAlCuZnAgPbHgCdSnSbBiMnCrNiCoVTiW电子质子中子原子分子离子化合价氧化还原反应溶液浓度摩尔质量阿伏伽德罗常数速度加速度力重力摩擦力弹力压强密度温度热量功率能量动能势能电流电压电阻电容电感磁场磁感应强度波长频率振幅光速声速<>|_^/\\~`!@#$%&*';:？。，、（）「」『』《》【】〈〉〖〗·…\"\"''", // 包含数学、化学、物理符号和术语
-        user_defined_dpi: '300', // 提高DPI以获得更好的识别效果
-        // 优化识别模式
-        tessedit_do_invert: '0',
-        textord_min_linesize: '1.25',
-        // 改善数字和符号识别
+        textord_min_linesize: '1.0',
+        textord_baseline_debug: '0',
+        // 字符识别优化
         classify_enable_learning: '0',
-        classify_enable_adaptive_matcher: '1'
+        classify_enable_adaptive_matcher: '1',
+        // 数字和字母识别增强
+        classify_integer_matcher_multiplier: '10',
+        // 优化的字符白名单 - 更专注于数学符号
+        tessedit_char_whitelist: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz一二三四五六七八九十零.,()[]{}=+-×÷≤≥≠∞∑∫√²³¹⁰±∩∪∈∉⊂⊃∅∠∴∵∝∂∆∇φψωαβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ℃℉°′″π∞∟⊥∥∽≈≡→←↑↓⇋⇌⇄⇀⇁∀∃抛物线焦点双曲线渐近线距离已知集合的到线为选择题HClNaOHCaCO₃SO₄NO₃NH₄HNO₃H₂SO₄NaClKBrMgFeAlCuZnAgPbHgCdSnSbBiMnCrNiCoVTiW电子质子中子原子分子离子化合价氧化还原反应溶液浓度摩尔质量阿伏伽德罗常数速度加速度力重力摩擦力弹力压强密度温度热量功率能量动能势能电流电压电阻电容电感磁场磁感应强度波长频率振幅光速声速<>|_^/\\~`!@#$%&*':;？。，、（）「」『』《》【】〈〉〖〗·…\"\"''",
+        // DPI优化
+        user_defined_dpi: '300',
+        // 图像处理优化
+        tessedit_do_invert: '0',
+        // 单词识别置信度
+        tessedit_reject_bad_qual_wds: '1',
+        // 字符置信度阈值
+        tessedit_good_quality_unrej: '1.1'
       });
       
-      const { data: { text } } = await worker.recognize(file);
+      const { data: { text, confidence } } = await worker.recognize(processedFile);
+      console.log('OCR confidence:', confidence);
+      console.log('Original OCR result:', text);
       
-      // 增强后处理 - 针对数学、化学、物理公式的特殊处理
+      // 强化的后处理逻辑
       let processedText = text
-        // 修复常见的标点符号识别错误
+        // 1. 基础字符修正
         .replace(/[，、]/g, ',')
         .replace(/[（]/g, '(')
         .replace(/[）]/g, ')')
         .replace(/[＝]/g, '=')
         .replace(/[－—]/g, '-')
         .replace(/[＋]/g, '+')
-        .replace(/[×]/g, '×')
-        .replace(/[÷]/g, '÷')
         
-        // 修复数学符号识别错误
-        .replace(/[∈]/g, '∈')
-        .replace(/[∉]/g, '∉')
-        .replace(/[∩]/g, '∩')
-        .replace(/[∪]/g, '∪')
-        .replace(/[⊂]/g, '⊂')
-        .replace(/[⊃]/g, '⊃')
-        .replace(/[≤]/g, '≤')
-        .replace(/[≥]/g, '≥')
-        .replace(/[≠]/g, '≠')
-        .replace(/[√]/g, '√')
-        .replace(/[∞]/g, '∞')
+        // 2. 数学符号的精确修正
+        .replace(/[×xX]/g, '×')
+        .replace(/[÷/]/g, '÷')
+        .replace(/<=|≤/g, '≤')
+        .replace(/>=|≥/g, '≥')
+        .replace(/!=|≠/g, '≠')
+        .replace(/sqrt|√/g, '√')
+        .replace(/infinity|∞/g, '∞')
+        .replace(/∈/g, '∈')
+        .replace(/∉/g, '∉')
+        .replace(/∩/g, '∩')
+        .replace(/∪/g, '∪')
+        .replace(/⊂/g, '⊂')
+        .replace(/⊃/g, '⊃')
         
-        // 修复上标和下标
-        .replace(/x\s*[²2²]\s*/g, 'x²')
-        .replace(/y\s*[²2²]\s*/g, 'y²')
-        .replace(/[²2²]/g, '²')
-        .replace(/[³3³]/g, '³')
-        .replace(/[¹1¹]/g, '¹')
+        // 3. 上标下标的智能识别和修正
+        .replace(/\^2|²|2²/g, '²')
+        .replace(/\^3|³|3³/g, '³')
+        .replace(/\^4|⁴|4⁴/g, '⁴')
+        .replace(/\^1|¹|1¹/g, '¹')
+        .replace(/\^0|⁰|0⁰/g, '⁰')
         
-        // 修复分数识别
+        // 4. 变量和系数的修正
+        .replace(/([a-zA-Z])\s*(\d)/g, '$1$2')  // 变量后紧跟数字
+        .replace(/(\d)\s*([a-zA-Z])/g, '$1$2')  // 数字后紧跟变量
+        
+        // 5. 分数表示的修正
         .replace(/(\d+)\s*[\/丿]\s*(\d+)/g, '$1/$2')
         .replace(/1\s*[\/丿]\s*2/g, '1/2')
         .replace(/1\s*[\/丿]\s*3/g, '1/3')
         .replace(/1\s*[\/丿]\s*4/g, '1/4')
-        .replace(/1\s*[\/丿]\s*8/g, '1/8')
         
-        // 修复化学公式常见错误
+        // 6. 根号表达式修正
+        .replace(/sqrt\s*\(([^)]+)\)/g, '√($1)')
+        .replace(/√\s*([a-zA-Z0-9]+)/g, '√$1')
+        
+        // 7. 绝对值符号修正
+        .replace(/\|\s*([^|]+)\s*\|/g, '|$1|')
+        
+        // 8. 向量符号修正
+        .replace(/→\s*([a-zA-Z])/g, '→$1')
+        .replace(/([a-zA-Z])\s*→/g, '$1→')
+        
+        // 9. 角度和弧度修正
+        .replace(/π\s*\/\s*(\d+)/g, 'π/$1')
+        .replace(/(\d+)\s*π/g, '$1π')
+        
+        // 10. 化学公式特殊修正
         .replace(/H\s*2\s*O/g, 'H₂O')
         .replace(/CO\s*2/g, 'CO₂')
         .replace(/SO\s*4/g, 'SO₄')
         .replace(/NO\s*3/g, 'NO₃')
         .replace(/NH\s*4/g, 'NH₄')
         .replace(/CaCO\s*3/g, 'CaCO₃')
-        .replace(/H\s*2\s*SO\s*4/g, 'H₂SO₄')
-        .replace(/HNO\s*3/g, 'HNO₃')
         
-        // 修复物理单位和符号
-        .replace(/m\s*\/\s*s/g, 'm/s')
-        .replace(/kg\s*·\s*m\s*\/\s*s/g, 'kg·m/s')
-        .replace(/°C/g, '℃')
-        .replace(/°F/g, '℉')
+        // 11. 常见错误字符替换
+        .replace(/[Oo0]/g, (match, offset, string) => {
+          // 上下文判断：如果前后是数字，则为0；如果是字母，则为O
+          const before = string[offset - 1];
+          const after = string[offset + 1];
+          if (/\d/.test(before) || /\d/.test(after)) return '0';
+          if (/[a-zA-Z]/.test(before) || /[a-zA-Z]/.test(after)) return 'O';
+          return match;
+        })
         
-        // 修复常见数学术语的识别错误
-        .replace(/抛物线.*?[=＝]/g, '抛物线y=')
-        .replace(/双曲线.*?[=＝]/g, '双曲线')
-        .replace(/焦点.*?到/g, '焦点到')
-        .replace(/渐近线.*?的/g, '渐近线的')
-        .replace(/距离.*?为/g, '距离为')
-        
-        // 修复常见错误字符
-        .replace(/二\s*>/g, 'x²')
-        .replace(/蕊\s*_\s*22\s*-\s*1/g, 'y²/22 - x²/1 = 1')
-        .replace(/了/g, '1/2')
-        .replace(/。\s*\)/g, ')')
-        .replace(/\(\s*。\s*/g, '(')
-        
-        // 修复选项格式
+        // 12. 题号和选项格式修正
+        .replace(/^\s*(\d+)\s*[.\uff0e]\s*/gm, '$1. ')
         .replace(/\s*([A-D])\s*[.\uff0e:：]\s*/g, '\n$1. ')
-        .replace(/(\d+)\s*[.\uff0e]\s*/g, '$1. ')
         
-        // 清理多余空格和换行
+        // 13. 空格清理
         .replace(/\s+/g, ' ')
         .replace(/\n\s+/g, '\n')
         .replace(/\s+\n/g, '\n')
         .trim();
       
-      // 进一步的学科特定修正
-      processedText = processedText
-        // 数学公式修正
-        .replace(/x\s*平方/g, 'x²')
-        .replace(/y\s*平方/g, 'y²')
-        .replace(/平方根/g, '√')
-        .replace(/无穷大/g, '∞')
-        .replace(/小于等于/g, '≤')
-        .replace(/大于等于/g, '≥')
-        .replace(/不等于/g, '≠')
-        .replace(/属于/g, '∈')
-        .replace(/不属于/g, '∉')
-        .replace(/交集/g, '∩')
-        .replace(/并集/g, '∪')
-        .replace(/包含于/g, '⊂')
-        .replace(/包含/g, '⊃')
-        
-        // 化学公式修正
-        .replace(/氢氧化钠/g, 'NaOH')
-        .replace(/碳酸钙/g, 'CaCO₃')
-        .replace(/硫酸/g, 'H₂SO₄')
-        .replace(/硝酸/g, 'HNO₃')
-        .replace(/氯化钠/g, 'NaCl')
-        .replace(/氨气/g, 'NH₃')
-        .replace(/二氧化碳/g, 'CO₂')
-        .replace(/水/g, 'H₂O')
-        
-        // 物理公式修正
-        .replace(/米每秒/g, 'm/s')
-        .replace(/千克/g, 'kg')
-        .replace(/牛顿/g, 'N')
-        .replace(/焦耳/g, 'J')
-        .replace(/瓦特/g, 'W')
-        .replace(/摄氏度/g, '℃')
-        .replace(/安培/g, 'A')
-        .replace(/伏特/g, 'V')
-        .replace(/欧姆/g, 'Ω');
+      // 14. 智能的学科术语修正
+      const mathTerms = {
+        '设': '设',
+        '则': '则',
+        '已知': '已知',
+        '求': '求',
+        '证明': '证明',
+        '解': '解',
+        '某圆锥': '某圆锥',
+        '母线': '母线',
+        '底面': '底面',
+        '半径': '半径',
+        '高': '高',
+        '体积': '体积',
+        '表面积': '表面积'
+      };
       
-      console.log('Original OCR result:', text);
+      for (const [wrong, correct] of Object.entries(mathTerms)) {
+        const regex = new RegExp(wrong.split('').join('\\s*'), 'g');
+        processedText = processedText.replace(regex, correct);
+      }
+      
       console.log('Processed OCR result:', processedText);
       
+      // 识别置信度检查
+      if (confidence < 60) {
+        toast.warning("识别置信度较低", {
+          description: `置信度: ${confidence.toFixed(1)}%，建议检查识别结果并手动调整。`,
+        });
+      }
+      
       setInputText(processedText);
-      toast.success("图片识别成功！");
+      toast.success("图片识别完成！", {
+        description: `识别置信度: ${confidence.toFixed(1)}%`,
+      });
       await worker.terminate();
     } catch (err) {
       console.error(err);
       toast.error("图片识别失败", {
-        description: "无法从图片中提取文字，请检查图片或稍后重试。",
+        description: "无法从图片中提取文字，请检查图片质量或稍后重试。",
       });
     } finally {
       setIsOcrLoading(false);
