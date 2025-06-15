@@ -1,4 +1,3 @@
-
 import { createWorker, PSM, OEM } from "tesseract.js";
 import { MathematicalOCRProcessor } from "./mathematicalOCRProcessor";
 import { QuestionClassifier, ClassificationResult } from "./questionClassifier";
@@ -63,11 +62,11 @@ export class EnhancedOCRv4 {
 
       // 3. TrOCR启发的Transformer识别
       preprocessingSteps.push("应用TrOCR启发的Vision Transformer识别");
-      const transformerResults = await this.trOCRInspiredRecognition(textDetectionResult, preprocessingSteps);
+      const transformerResults = await this.trOCRInspiredRecognition(file, textDetectionResult, preprocessingSteps);
 
       // 4. im2markup启发的数学公式处理
       preprocessingSteps.push("执行im2markup启发的数学公式专用识别");
-      const mathResults = await this.im2markupInspiredMathOCR(textDetectionResult, preprocessingSteps);
+      const mathResults = await this.im2markupInspiredMathOCR(file, textDetectionResult, preprocessingSteps);
 
       // 5. 多算法融合与后处理
       preprocessingSteps.push("开始多算法智能融合与优化后处理");
@@ -81,7 +80,7 @@ export class EnhancedOCRv4 {
 
       return {
         text: fusedResult.text,
-        confidence: fusedResult.confidence,
+        confidence,
         classification,
         preprocessingSteps,
         processingTime,
@@ -224,7 +223,7 @@ export class EnhancedOCRv4 {
   }
 
   // TrOCR启发的Transformer识别
-  private async trOCRInspiredRecognition(detectionResult: any, preprocessingSteps: string[]): Promise<{
+  private async trOCRInspiredRecognition(file: File, detectionResult: any, preprocessingSteps: string[]): Promise<{
     text: string;
     confidence: number;
   }> {
@@ -271,7 +270,7 @@ export class EnhancedOCRv4 {
         const processedImageData = this.transformerInspiredPreprocessing(canvas, ctx);
         
         // 将处理后的图像转换为blob
-        canvas.putImageData(processedImageData, 0, 0);
+        ctx.putImageData(processedImageData, 0, 0);
         canvas.toBlob(async (blob) => {
           if (blob) {
             const { data: { text, confidence } } = await worker.recognize(blob);
@@ -285,7 +284,7 @@ export class EnhancedOCRv4 {
   }
 
   // im2markup启发的数学公式识别
-  private async im2markupInspiredMathOCR(detectionResult: any, preprocessingSteps: string[]): Promise<{
+  private async im2markupInspiredMathOCR(file: File, detectionResult: any, preprocessingSteps: string[]): Promise<{
     mathText: string;
     symbolCount: number;
     fractionCount: number;
