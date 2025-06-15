@@ -205,7 +205,7 @@ const Index = () => {
               <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-500 py-2">
                 智能试题结构识别
               </h2>
-              <p className="mt-3 text-base text-muted-foreground max-w-2xl mx-auto">
+              <p className="mt-3 text-base text-muted-foreground">
                 粘贴试题文本或上传图片，即刻获得结构化分析。支持数学、物理、化学、语文、英语等学科的多种题型识别。
               </p>
             </div>
