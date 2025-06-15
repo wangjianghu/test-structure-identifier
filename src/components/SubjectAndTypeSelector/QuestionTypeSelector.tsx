@@ -24,7 +24,7 @@ export function QuestionTypeSelector({
         onValueChange={onQuestionTypeChange}
         disabled={!selectedSubject}
       >
-        <SelectTrigger id="question-type-select" className="w-32">
+        <SelectTrigger id="question-type-select" className="w-[116px]">
           <SelectValue placeholder="选择题型" />
         </SelectTrigger>
         <SelectContent className="bg-white dark:bg-gray-800">

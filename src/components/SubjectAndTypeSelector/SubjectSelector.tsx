@@ -13,7 +13,7 @@ export function SubjectSelector({ selectedSubject, onSubjectChange }: SubjectSel
     <div className="flex items-center gap-3">
       <Label htmlFor="subject-select" className="text-sm whitespace-nowrap">选择学科：</Label>
       <Select value={selectedSubject} onValueChange={onSubjectChange}>
-        <SelectTrigger id="subject-select" className="w-32">
+        <SelectTrigger id="subject-select" className="w-[116px]">
           <SelectValue placeholder="选择学科" />
         </SelectTrigger>
         <SelectContent className="bg-white dark:bg-gray-800">
