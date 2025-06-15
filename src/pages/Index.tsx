@@ -192,21 +192,11 @@ const Index = () => {
               <SubjectAndTypeSelector
                 selectedSubject={selectedSubject}
                 onSubjectChange={setSelectedSubject}
-                questionTypeExample={questionTypeExample}
-                onQuestionTypeExampleChange={setQuestionTypeExample}
+                structureExample={questionTypeExample}
+                onStructureExampleChange={setQuestionTypeExample}
               />
 
-              <QuestionInput
-                value={inputText}
-                onChange={handleTextChange}
-                onImagesUpload={handleImagesUpload}
-                uploadedImages={uploadedImages}
-                onRemoveImage={handleRemoveImage}
-                isOcrLoading={isOcrLoading}
-                disabled={isOcrLoading || isLoading}
-                onAnalyze={handleAnalyze}
-                isAnalyzing={isLoading}
-              />
+              <QuestionInput />
               
               {/* OCR 处理详情显示 */}
               {ocrResults.length > 0 && (

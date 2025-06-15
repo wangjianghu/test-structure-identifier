@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,7 +18,6 @@ export function QuestionInput() {
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedSubject, setSelectedSubject] = useState<string | undefined>(undefined);
-  const [selectedQuestionType, setSelectedQuestionType] = useState<string | undefined>(undefined);
   const [structureExample, setStructureExample] = useState<string | undefined>(undefined);
   const { toast } = useToast();
   const { analyzeText, analyzeImage } = useOCR();
@@ -125,8 +125,6 @@ export function QuestionInput() {
           <SubjectAndTypeSelector
             selectedSubject={selectedSubject}
             onSubjectChange={setSelectedSubject}
-            selectedQuestionType={selectedQuestionType}
-            onQuestionTypeChange={setSelectedQuestionType}
             structureExample={structureExample}
             onStructureExampleChange={setStructureExample}
           />

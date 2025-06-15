@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,6 @@ import { HistoryItem } from "@/types/ocrHistory";
 import { formatDistanceToNow, format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { ImageViewDialog } from "./ImageViewDialog";
-import { supabase } from "@/integrations/supabase/client";
 
 interface OCRHistoryProps {
   history: HistoryItem[];
@@ -47,70 +45,13 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
 
   const handleExportWithSync = async () => {
     try {
-      // 先执行原有的导出逻辑
+      // 执行原有的导出逻辑
       onExport();
 
-      // 准备同步到 Supabase 的数据
-      const exportData = {
-        history: history.map(item => {
-          const baseData = {
-            id: item.id,
-            timestamp: item.timestamp.toISOString(),
-            inputTime: item.inputTime.toISOString(),
-            outputTime: item.outputTime?.toISOString(),
-            inputType: item.inputType,
-            selectedSubject: item.selectedSubject,
-            questionTypeExample: item.questionTypeExample,
-          };
-
-          if (item.inputType === 'text') {
-            return {
-              ...baseData,
-              inputText: item.inputText,
-              analysisResult: item.analysisResult
-            };
-          } else {
-            return {
-              ...baseData,
-              fileName: item.originalImage.name,
-              fileSize: item.originalImage.size,
-              fileType: item.originalImage.type,
-              inputText: item.inputText,
-              ocrResult: {
-                text: item.ocrResult.text,
-                confidence: item.ocrResult.confidence,
-                isQuestion: item.ocrResult.classification.isQuestion,
-                questionType: item.ocrResult.classification.questionType,
-                subject: item.ocrResult.classification.subject,
-                classificationConfidence: item.ocrResult.classification.confidence,
-                features: item.ocrResult.classification.features,
-                preprocessingSteps: item.ocrResult.preprocessingSteps,
-                processingTime: item.ocrResult.processingTime
-              },
-              analysisResult: item.analysisResult
-            };
-          }
-        })
-      };
-
-      const fileName = `analysis-history-${new Date().toISOString().split('T')[0]}.json`;
-
-      // 同步到 Supabase
-      const { error } = await supabase
-        .from('analysis_exports')
-        .insert({
-          export_data: exportData,
-          record_count: history.length,
-          file_name: fileName
-        });
-
-      if (error) {
-        console.error('同步导出记录到 Supabase 失败:', error);
-      } else {
-        console.log('导出记录已同步到 Supabase');
-      }
+      // TODO: 当 analysis_exports 表创建成功后，可以添加同步到 Supabase 的功能
+      console.log('导出完成，暂未同步到 Supabase');
     } catch (error) {
-      console.error('导出同步过程中出错:', error);
+      console.error('导出过程中出错:', error);
     }
   };
 
