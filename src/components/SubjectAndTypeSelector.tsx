@@ -13,7 +13,6 @@ interface SubjectAndTypeSelectorProps {
 }
 
 const subjects = [
-  { value: "", label: "请选择学科" },
   { value: "数学", label: "数学" },
   { value: "语文", label: "语文" },
   { value: "英语", label: "英语" },
