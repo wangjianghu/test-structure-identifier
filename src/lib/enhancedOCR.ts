@@ -113,7 +113,7 @@ export class EnhancedOCR {
       .replace(/[＋]/g, '+');
 
     // 2. 数学符号智能修正
-    const mathCorrections = [
+    const mathCorrections: Array<[RegExp, string]> = [
       [/[×xX*]/g, '×'],
       [/[÷/]/g, '÷'],
       [/<=|≤/g, '≤'],
@@ -138,7 +138,7 @@ export class EnhancedOCR {
       .replace(/(\d+)\s*[\/丿]\s*(\d+)/g, '$1/$2');
 
     // 4. 化学公式修正
-    const chemicalCorrections = [
+    const chemicalCorrections: Array<[RegExp, string]> = [
       [/H\s*2\s*O/g, 'H₂O'],
       [/CO\s*2/g, 'CO₂'],
       [/SO\s*4/g, 'SO₄'],
