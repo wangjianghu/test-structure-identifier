@@ -1,12 +1,11 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Github, Zap, Image } from "lucide-react";
+import { Github, Zap } from "lucide-react";
 import { parseQuestion, ParsedQuestion } from "@/lib/parser";
 import { AnalysisResult } from "@/components/AnalysisResult";
 import { createWorker } from "tesseract.js";
 import { toast } from "sonner";
+import { QuestionInput } from "@/components/QuestionInput";
 
 const exampleText = "4.已知集合M={-2,-1,0,1,2},N={x|x²-x-2≤0},则M∩(CRN)=(  )\nA.{-2,-1}\nB.{-2}\nC.{-1,0}\nD.{0}";
 
@@ -107,29 +106,17 @@ const Index = () => {
         </div>
 
         <div className="w-full max-w-2xl space-y-4">
-          <Textarea
+          <QuestionInput
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="在此处粘贴试题文本或图片..."
-            className="min-h-[150px] text-base shadow-sm"
+            onImageUpload={handleImageUpload}
+            isOcrLoading={isOcrLoading}
+            disabled={isOcrLoading || isLoading}
           />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <Button onClick={handleAnalyze} disabled={isLoading || isOcrLoading || !inputText} className="w-full">
+          <div className="flex justify-end">
+            <Button onClick={handleAnalyze} disabled={isLoading || isOcrLoading || !inputText} className="w-full sm:w-auto">
               <Zap className="mr-2 h-4 w-4" />
               {isLoading ? "分析中..." : "开始分析"}
-            </Button>
-            <Button asChild variant="outline" disabled={isOcrLoading} className="cursor-pointer">
-              <label htmlFor="file-upload" className="w-full flex items-center justify-center">
-                {isOcrLoading ? (
-                  "识别中..."
-                ) : (
-                  <>
-                    <Image className="mr-2 h-4 w-4" />
-                    从图片识别
-                  </>
-                )}
-                <input id="file-upload" type="file" className="sr-only" onChange={handleImageUpload} accept="image/*" disabled={isOcrLoading} />
-              </label>
             </Button>
           </div>
         </div>
