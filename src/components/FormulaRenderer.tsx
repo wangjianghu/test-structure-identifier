@@ -114,7 +114,7 @@ export function FormulaRenderer({ content, className = "" }: FormulaRendererProp
       [/\\left\{/g, '{'],
       [/\\right\}/g, '}'],
       
-      // Cases environment
+      // Cases environment - 优化处理
       [/\\begin\{cases\}(.*?)\\end\{cases\}/gs, (match, content) => {
         const cases = content.split('\\\\').map((line: string) => {
           const parts = line.split('&');
@@ -142,8 +142,11 @@ export function FormulaRenderer({ content, className = "" }: FormulaRendererProp
 
   const processedContent = renderFormulas(content);
 
+  // 检查是否包含数学符号，如果是则使用特殊样式
+  const hasMathSymbols = /[∫∑∏√²³¹⁰±∩∪∈∉⊂⊃∅∠∴∵∝∂∆∇αβγδεθλμπσφω≤≥≠≈×÷·]/.test(processedContent);
+
   return (
-    <span className={`formula-content ${className}`}>
+    <span className={`formula-content ${className} ${hasMathSymbols ? 'font-mono text-blue-700' : ''}`}>
       {processedContent}
     </span>
   );

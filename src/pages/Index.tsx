@@ -1,6 +1,7 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Github, Zap, ChevronLeft, ChevronRight } from "lucide-react";
+import { Github, ChevronLeft, ChevronRight } from "lucide-react";
 import { parseQuestion, ParsedQuestion } from "@/lib/parser";
 import { AnalysisResult } from "@/components/AnalysisResult";
 import { toast } from "sonner";
@@ -10,7 +11,6 @@ import { MistralOCR, MistralOCRResult } from "@/lib/mistralOCR";
 import { OCRHistory } from "@/components/OCRHistory";
 import { useOCRHistory } from "@/hooks/useOCRHistory";
 import { SubjectAndTypeSelector } from "@/components/SubjectAndTypeSelector";
-import { MistralConfig } from "@/components/MistralConfig";
 import { AlicloudOCR, AlicloudOCRResult } from "@/lib/alicloudOCR";
 
 const exampleText = "4.已知集合M={-2,-1,0,1,2},N={x|x²-x-2≤0},则M∩(CRN)=(  )\nA.{-2,-1}\nB.{-2}\nC.{-1,0}\nD.{0}";
@@ -205,6 +205,7 @@ const Index = () => {
         
         if (results.length > 0) {
           const avgConfidence = results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
+          // 修复OCR引擎名称显示逻辑
           const engineName = useMistral ? 'Mistral.ai' : useAlicloud ? '阿里云 OCR' : '内置OCR';
           toast.success(`成功识别 ${results.length} 张图片`, {
             description: `平均置信度: ${avgConfidence.toFixed(1)}% (${engineName})`,
@@ -350,15 +351,27 @@ const Index = () => {
                   />
                 </div>
                 
-                {/* OCR 处理详情显示 */}
+                {/* OCR 处理详情显示 - 优化显示逻辑 */}
                 {ocrResults.length > 0 && (
                   <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border">
                     <h3 className="font-semibold mb-2 text-sm">图片 OCR 处理详情</h3>
                     <div className="space-y-3">
                       {ocrResults.map((result, index) => {
-                        const isMistral = 'classification' in result && !('features' in result.classification);
-                        const isAlicloud = 'classification' in result && 'processingTime' in result && !isMistral;
-                        const engineName = isMistral ? 'Mistral.ai' : isAlicloud ? '阿里云 OCR' : '内置OCR';
+                        // 优化OCR引擎识别逻辑
+                        const isMistral = 'classification' in result && 
+                          result.classification && 
+                          typeof result.classification === 'object' && 
+                          !('features' in result.classification);
+                        
+                        const isAlicloud = 'classification' in result && 
+                          result.classification && 
+                          typeof result.classification === 'object' && 
+                          'processingTime' in result && 
+                          !isMistral;
+                        
+                        const engineName = isMistral ? 'Mistral.ai' : 
+                                         isAlicloud ? '阿里云 OCR' : 
+                                         '内置OCR';
                         
                         return (
                           <div key={index} className="text-xs space-y-1 text-muted-foreground border-l-2 border-blue-200 pl-3">

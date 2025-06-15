@@ -135,7 +135,7 @@ export function parseQuestion(text: string): ParsedQuestion {
   // 学科检测
   const subject = detectSubject(body);
 
-  // 题型检测
+  // 题型检测 - 增强检测逻辑
   const questionType = detectQuestionType(body, options.length > 0, subject);
 
   return {
@@ -315,8 +315,19 @@ function parseCompositeQuestion(text: string, formulaInfo: any): ParsedQuestion 
 function detectSubject(text: string): string {
   const subjectKeywords = {
     "数学": {
-      keywords: ["集合", "函数", "方程", "不等式", "x²", "sin", "cos", "tan", "M∩", "CRN", "≤", "≥", "∞", "√", "²", "³", "π", "∫", "∑", "导数", "微分", "积分", "概率", "统计", "几何", "代数", "三角", "向量", "矩阵"],
-      weight: 1
+      keywords: [
+        // 基础数学词汇
+        "集合", "函数", "方程", "不等式", "导数", "微分", "积分", "概率", "统计", 
+        "几何", "代数", "三角", "向量", "矩阵", "数列", "极限", "定义域", "值域",
+        // 数学符号和表达式
+        "x²", "sin", "cos", "tan", "log", "ln", "exp", "M∩", "CRN", "∪", "∈", "⊂",
+        // 数学运算符号
+        "≤", "≥", "≠", "≈", "∞", "√", "²", "³", "π", "∫", "∑", "∏", "∂", "∆",
+        // 高中数学特定内容
+        "二次函数", "一元二次方程", "线性规划", "排列组合", "概率分布",
+        "解析几何", "立体几何", "平面向量", "数学归纳法", "等差数列", "等比数列"
+      ],
+      weight: 2 // 提高数学的权重
     },
     "物理": {
       keywords: ["力", "牛顿", "速度", "加速度", "质量", "密度", "压强", "功", "功率", "能量", "动能", "势能", "电流", "电压", "电阻", "磁场", "波长", "频率", "焦耳", "瓦特", "安培", "伏特", "欧姆", "牛", "帕", "赫兹", "实验", "测量"],
@@ -347,6 +358,24 @@ function detectSubject(text: string): string {
     if (score > maxScore) {
       maxScore = score;
       detectedSubject = subject;
+    }
+  }
+
+  // 增强数学检测 - 检查数学符号和公式模式
+  if (detectedSubject === "未知") {
+    const mathPatterns = [
+      /[xy]\s*[²³⁴⁵⁶⁷⁸⁹]/,  // 指数表达式
+      /\b[xy]\s*[=<>≤≥]/,        // 变量和不等式
+      /[∫∑∏]/,                   // 积分、求和、连乘
+      /sin|cos|tan|log|ln/,      // 三角函数和对数
+      /[{}\[\]()]\s*[xy]/,       // 包含变量的括号表达式
+      /集合|函数|方程|不等式/,    // 中文数学词汇
+      /定义域|值域|单调/,         // 函数相关词汇
+    ];
+    
+    if (mathPatterns.some(pattern => pattern.test(text))) {
+      detectedSubject = "数学";
+      maxScore = 2; // 给予高分
     }
   }
 
@@ -391,13 +420,16 @@ function detectQuestionType(text: string, hasOptions: boolean, subject: string):
     return "单选题";
   }
 
-  // 无选项题型判断
+  // 无选项题型判断 - 增强数学题型识别
   const typeIndicators = {
     // 填空题
     "填空题": ["填空", "空格", "______", "____", "（）", "___", "完成下列"],
     
-    // 解答题/计算题
-    "解答题": ["解答", "计算", "求解", "求出", "解下列", "计算下列"],
+    // 解答题/计算题 - 增强数学相关词汇
+    "解答题": [
+      "解答", "计算", "求解", "求出", "解下列", "计算下列", "求函数", "求方程",
+      "求不等式", "求集合", "求定义域", "求值域", "求导数", "求积分", "求极限"
+    ],
     
     // 证明题
     "证明题": ["证明", "证", "求证"],
@@ -406,7 +438,7 @@ function detectQuestionType(text: string, hasOptions: boolean, subject: string):
     "实验题": ["实验", "测量", "观察", "记录", "操作"],
     
     // 作图题
-    "作图题": ["作图", "画图", "绘制", "画出"],
+    "作图题": ["作图", "画图", "绘制", "画出", "作函数图像"],
     
     // 阅读理解
     "阅读理解": ["阅读下列", "根据短文", "passage", "reading", "文章"],
@@ -442,19 +474,30 @@ function detectQuestionType(text: string, hasOptions: boolean, subject: string):
     "名篇名句默写": ["默写", "填写", "补写"]
   };
 
+  // 优先检查具体题型
   for (const [type, indicators] of Object.entries(typeIndicators)) {
     if (indicators.some(indicator => lowerText.includes(indicator.toLowerCase()))) {
       return type;
     }
   }
 
-  // 根据学科返回默认题型
-  if (subject === "语文") {
+  // 根据学科和内容特征进一步判断
+  if (subject === "数学") {
+    // 数学特殊题型识别
+    if (/求.*的.*值|计算.*的.*值|求.*等于/.test(text)) {
+      return QUESTION_TYPES.MATH.CALCULATE;
+    }
+    if (/已知.*求|设.*求|若.*求/.test(text)) {
+      return QUESTION_TYPES.MATH.SOLVE_PROBLEM;
+    }
+    if (/证明.*等式|证明.*不等式|证明.*函数/.test(text)) {
+      return QUESTION_TYPES.MATH.PROOF;
+    }
+    return QUESTION_TYPES.MATH.SOLVE_PROBLEM;
+  } else if (subject === "语文") {
     return "现代文阅读";
   } else if (subject === "英语") {
     return "阅读理解";
-  } else if (subject === "数学") {
-    return "解答题";
   } else if (subject === "物理") {
     return "解答题";
   } else if (subject === "化学") {
