@@ -7,131 +7,207 @@ export class ImagePreprocessor {
       const img = new Image();
       
       img.onload = () => {
-        // 保守的尺寸缩放 - 确保清晰度但不过度放大
-        const scale = this.calculateConservativeScale(img.width, img.height);
-        const targetWidth = Math.round(img.width * scale);
-        const targetHeight = Math.round(img.height * scale);
+        // 激进的高分辨率策略 - 确保文字足够大
+        const targetDPI = 600;
+        const minSize = Math.max(img.width, img.height);
+        let scale = 1.0;
         
-        canvas.width = targetWidth;
-        canvas.height = targetHeight;
+        if (minSize < 800) {
+          scale = 800 / minSize;
+        } else if (minSize < 1200) {
+          scale = 1200 / minSize;
+        }
         
-        // 高质量重采样
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+        const finalWidth = Math.round(img.width * scale);
+        const finalHeight = Math.round(img.height * scale);
         
-        let imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
-        preprocessingSteps.push(`智能缩放: ${scale.toFixed(2)}x → ${targetWidth}×${targetHeight}`);
+        canvas.width = finalWidth;
+        canvas.height = finalHeight;
         
-        // 温和的图像增强
-        imageData = this.gentleContrastEnhancement(imageData, preprocessingSteps);
-        imageData = this.adaptiveBinarization(imageData, preprocessingSteps);
-        imageData = this.textCleanup(imageData, preprocessingSteps);
+        // 超高质量重采样
+        ctx.imageSmoothingEnabled = false; // 关闭平滑以保持锐利边缘
+        ctx.drawImage(img, 0, 0, finalWidth, finalHeight);
+        
+        let imageData = ctx.getImageData(0, 0, finalWidth, finalHeight);
+        preprocessingSteps.push(`激进缩放: ${scale.toFixed(2)}x → ${finalWidth}×${finalHeight}`);
+        
+        // 数学文档专用预处理链
+        imageData = this.mathematicalDocumentEnhancement(imageData, preprocessingSteps);
+        imageData = this.extremeContrastBoost(imageData, preprocessingSteps);
+        imageData = this.chineseTextOptimization(imageData, preprocessingSteps);
+        imageData = this.aggressiveBinarization(imageData, preprocessingSteps);
+        imageData = this.morphologicalCleaning(imageData, preprocessingSteps);
         
         ctx.putImageData(imageData, 0, 0);
         canvas.toBlob((blob) => {
           if (blob) resolve(blob);
-        }, 'image/png', 0.95);
+        }, 'image/png', 1.0);
       };
       
       img.src = URL.createObjectURL(file);
     });
   }
 
-  private static calculateConservativeScale(width: number, height: number): number {
-    const area = width * height;
-    
-    // 更保守的缩放策略
-    if (area < 100000) {
-      return 2.0; // 小图放大2倍
-    } else if (area < 400000) {
-      return 1.5; // 中小图放大1.5倍
-    } else if (area > 1000000) {
-      return 0.8; // 大图略微缩小
-    }
-    return 1.0; // 其他情况保持原尺寸
-  }
-
-  private static gentleContrastEnhancement(imageData: ImageData, preprocessingSteps: string[]): ImageData {
-    const data = imageData.data;
-    
-    // 计算亮度分布
-    const histogram = new Array(256).fill(0);
-    for (let i = 0; i < data.length; i += 4) {
-      const gray = Math.round(data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
-      histogram[gray]++;
-    }
-    
-    // 找到5%和95%分位点
-    const totalPixels = imageData.width * imageData.height;
-    const low = this.findPercentile(histogram, totalPixels, 0.05);
-    const high = this.findPercentile(histogram, totalPixels, 0.95);
-    
-    // 温和的对比度调整
-    const range = high - low;
-    if (range > 20) {
-      const factor = Math.min(1.3, 200 / range);
-      
-      for (let i = 0; i < data.length; i += 4) {
-        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-        let enhanced = low + (gray - low) * factor;
-        enhanced = Math.max(0, Math.min(255, enhanced));
-        data[i] = data[i + 1] = data[i + 2] = enhanced;
-      }
-      
-      preprocessingSteps.push(`温和对比度增强: 范围${low}-${high}, 因子${factor.toFixed(2)}`);
-    } else {
-      preprocessingSteps.push("跳过对比度增强 - 图像已足够清晰");
-    }
-    
-    return imageData;
-  }
-
-  private static findPercentile(histogram: number[], total: number, percentile: number): number {
-    const target = total * percentile;
-    let sum = 0;
-    for (let i = 0; i < 256; i++) {
-      sum += histogram[i];
-      if (sum >= target) return i;
-    }
-    return 255;
-  }
-
-  private static adaptiveBinarization(imageData: ImageData, preprocessingSteps: string[]): ImageData {
+  private static mathematicalDocumentEnhancement(imageData: ImageData, preprocessingSteps: string[]): ImageData {
     const data = imageData.data;
     const width = imageData.width;
     const height = imageData.height;
     
-    // 计算全局Otsu阈值
-    const globalThreshold = this.calculateOtsuThreshold(data, width, height);
+    // 转换为灰度并增强对比度
+    for (let i = 0; i < data.length; i += 4) {
+      // 优化的灰度转换，针对文字识别
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      
+      // 使用ITU-R BT.709标准，对文字更敏感
+      const gray = Math.round(0.2126 * r + 0.7152 * g + 0.0722 * b);
+      
+      data[i] = gray;
+      data[i + 1] = gray;
+      data[i + 2] = gray;
+    }
     
-    // 自适应局部二值化
-    const windowSize = Math.max(15, Math.min(width, height) / 20);
+    preprocessingSteps.push("数学文档灰度转换");
+    return imageData;
+  }
+
+  private static extremeContrastBoost(imageData: ImageData, preprocessingSteps: string[]): ImageData {
+    const data = imageData.data;
+    
+    // 计算直方图
+    const histogram = new Array(256).fill(0);
+    for (let i = 0; i < data.length; i += 4) {
+      histogram[data[i]]++;
+    }
+    
+    // 找到有效灰度范围（排除极值噪声）
+    const totalPixels = imageData.width * imageData.height;
+    let minVal = 0, maxVal = 255;
+    
+    // 找到1%和99%分位点
+    let accum = 0;
+    for (let i = 0; i < 256; i++) {
+      accum += histogram[i];
+      if (accum > totalPixels * 0.01) {
+        minVal = i;
+        break;
+      }
+    }
+    
+    accum = 0;
+    for (let i = 255; i >= 0; i--) {
+      accum += histogram[i];
+      if (accum > totalPixels * 0.01) {
+        maxVal = i;
+        break;
+      }
+    }
+    
+    // 激进的对比度拉伸
+    const range = maxVal - minVal;
+    if (range > 10) {
+      for (let i = 0; i < data.length; i += 4) {
+        let enhanced = ((data[i] - minVal) / range) * 255;
+        enhanced = Math.max(0, Math.min(255, enhanced));
+        
+        // 额外的S型对比度增强
+        enhanced = enhanced / 255;
+        enhanced = enhanced < 0.5 ? 2 * enhanced * enhanced : 1 - 2 * (1 - enhanced) * (1 - enhanced);
+        enhanced = Math.round(enhanced * 255);
+        
+        data[i] = enhanced;
+        data[i + 1] = enhanced;
+        data[i + 2] = enhanced;
+      }
+    }
+    
+    preprocessingSteps.push(`激进对比度增强: 范围${minVal}-${maxVal}`);
+    return imageData;
+  }
+
+  private static chineseTextOptimization(imageData: ImageData, preprocessingSteps: string[]): ImageData {
+    const data = imageData.data;
+    const width = imageData.width;
+    const height = imageData.height;
+    
+    // 中文字符形态学增强
+    const enhanced = new Uint8ClampedArray(data.length);
+    
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const idx = (y * width + x) * 4;
+        
+        // 3x3锐化核，特别适合中文字符
+        const kernel = [
+          -1, -1, -1,
+          -1,  9, -1,
+          -1, -1, -1
+        ];
+        
+        let sum = 0;
+        for (let ky = -1; ky <= 1; ky++) {
+          for (let kx = -1; kx <= 1; kx++) {
+            const nIdx = ((y + ky) * width + (x + kx)) * 4;
+            const kernelIdx = (ky + 1) * 3 + (kx + 1);
+            sum += data[nIdx] * kernel[kernelIdx];
+          }
+        }
+        
+        const result = Math.max(0, Math.min(255, sum));
+        enhanced[idx] = result;
+        enhanced[idx + 1] = result;
+        enhanced[idx + 2] = result;
+        enhanced[idx + 3] = data[idx + 3];
+      }
+    }
+    
+    imageData.data.set(enhanced);
+    preprocessingSteps.push("中文字符锐化增强");
+    return imageData;
+  }
+
+  private static aggressiveBinarization(imageData: ImageData, preprocessingSteps: string[]): ImageData {
+    const data = imageData.data;
+    const width = imageData.width;
+    const height = imageData.height;
+    
+    // Otsu全局阈值
+    const globalThreshold = this.calculateOtsuThreshold(data);
+    
+    // 自适应局部阈值
+    const windowSize = Math.max(21, Math.min(width, height) / 15);
     
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
-        const gray = data[idx];
+        const pixel = data[idx];
         
-        const localMean = this.calculateLocalMean(data, width, height, x, y, windowSize);
-        const adaptiveThreshold = localMean * 0.85;
+        // 计算局部均值
+        const localMean = this.getLocalMean(data, width, height, x, y, windowSize);
         
-        // 混合全局和局部阈值
-        const finalThreshold = globalThreshold * 0.4 + adaptiveThreshold * 0.6;
+        // 自适应阈值，偏向于保留文字
+        const adaptiveThreshold = localMean * 0.75; // 更激进的阈值
         
-        const binaryValue = gray > finalThreshold ? 255 : 0;
-        data[idx] = data[idx + 1] = data[idx + 2] = binaryValue;
+        // 结合全局和局部阈值
+        const finalThreshold = Math.min(globalThreshold, adaptiveThreshold);
+        
+        const binary = pixel > finalThreshold ? 255 : 0;
+        data[idx] = binary;
+        data[idx + 1] = binary;
+        data[idx + 2] = binary;
       }
     }
     
-    preprocessingSteps.push(`自适应二值化: 全局阈值${globalThreshold.toFixed(1)}, 窗口${windowSize.toFixed(0)}`);
+    preprocessingSteps.push(`激进二值化: 全局阈值${globalThreshold}, 窗口${windowSize}`);
     return imageData;
   }
 
-  private static calculateOtsuThreshold(data: Uint8ClampedArray, width: number, height: number): number {
+  private static calculateOtsuThreshold(data: Uint8ClampedArray): number {
     const histogram = new Array(256).fill(0);
-    const total = width * height;
+    const total = data.length / 4;
     
+    // 构建直方图
     for (let i = 0; i < data.length; i += 4) {
       histogram[data[i]]++;
     }
@@ -144,7 +220,7 @@ export class ImagePreprocessor {
     let sumB = 0;
     let wB = 0;
     let maxVariance = 0;
-    let threshold = 0;
+    let threshold = 128;
     
     for (let i = 0; i < 256; i++) {
       wB += histogram[i];
@@ -168,7 +244,7 @@ export class ImagePreprocessor {
     return threshold;
   }
 
-  private static calculateLocalMean(data: Uint8ClampedArray, width: number, height: number, x: number, y: number, windowSize: number): number {
+  private static getLocalMean(data: Uint8ClampedArray, width: number, height: number, x: number, y: number, windowSize: number): number {
     let sum = 0;
     let count = 0;
     const halfWindow = Math.floor(windowSize / 2);
@@ -189,42 +265,65 @@ export class ImagePreprocessor {
     return count > 0 ? sum / count : 128;
   }
 
-  private static textCleanup(imageData: ImageData, preprocessingSteps: string[]): ImageData {
+  private static morphologicalCleaning(imageData: ImageData, preprocessingSteps: string[]): ImageData {
     const data = imageData.data;
     const width = imageData.width;
     const height = imageData.height;
     
-    // 轻度的噪点去除
-    const newData = new Uint8ClampedArray(data);
+    // 形态学开运算：先腐蚀后膨胀，去除小噪点
+    const temp = new Uint8ClampedArray(data.length);
+    temp.set(data);
     
+    // 腐蚀操作
     for (let y = 1; y < height - 1; y++) {
       for (let x = 1; x < width - 1; x++) {
         const idx = (y * width + x) * 4;
-        const current = data[idx];
         
-        // 计算3x3邻域
-        let blackNeighbors = 0;
+        // 检查3x3邻域是否全为前景
+        let allForeground = true;
         for (let dy = -1; dy <= 1; dy++) {
           for (let dx = -1; dx <= 1; dx++) {
-            if (dx === 0 && dy === 0) continue;
             const nIdx = ((y + dy) * width + (x + dx)) * 4;
-            if (data[nIdx] === 0) blackNeighbors++;
+            if (data[nIdx] !== 0) {
+              allForeground = false;
+              break;
+            }
           }
+          if (!allForeground) break;
         }
         
-        // 孤立噪点去除
-        if (current === 0 && blackNeighbors <= 2) {
-          newData[idx] = newData[idx + 1] = newData[idx + 2] = 255;
-        }
-        // 孤立白点填充
-        else if (current === 255 && blackNeighbors >= 6) {
-          newData[idx] = newData[idx + 1] = newData[idx + 2] = 0;
-        }
+        temp[idx] = allForeground ? 0 : 255;
+        temp[idx + 1] = temp[idx];
+        temp[idx + 2] = temp[idx];
       }
     }
     
-    imageData.data.set(newData);
-    preprocessingSteps.push("轻度噪点清理");
+    // 膨胀操作
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const idx = (y * width + x) * 4;
+        
+        // 检查3x3邻域是否有前景像素
+        let hasForeground = false;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const nIdx = ((y + dy) * width + (x + dx)) * 4;
+            if (temp[nIdx] === 0) {
+              hasForeground = true;
+              break;
+            }
+          }
+          if (hasForeground) break;
+        }
+        
+        const result = hasForeground ? 0 : 255;
+        data[idx] = result;
+        data[idx + 1] = result;
+        data[idx + 2] = result;
+      }
+    }
+    
+    preprocessingSteps.push("形态学噪点清理");
     return imageData;
   }
 }
