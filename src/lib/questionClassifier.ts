@@ -70,8 +70,31 @@ export class QuestionClassifier {
     'dialogue', 'conversation', 'text', 'word', 'phrase', 'clause'
   ];
 
+  // 增强的数学关键词识别
+  private enhancedMathKeywords = [
+    // 数学运算符号和符号
+    '(', ')', '{', '}', '[', ']', '|', '∣',
+    // 数学关系和不等式
+    '对于', '当', '且', '或', '有', '使得', '满足', '的了什么',
+    // 数学术语
+    '和数', '已和数', '子集', '交集', '并集', '补集', '定义域', '值域',
+    '单调', '周期', '奇偶', '零点', '最值', '极值',
+    // 题目中常见的数学表述
+    '已知', '设', '若', '则', '求', '证', '解', '计算',
+    // 数学对象
+    '函数', '方程', '不等式', '数列', '级数', '矩阵', '向量'
+  ];
+
   private subjectKeywords = {
-    '数学': [...this.mathSymbols, '函数', '方程', '不等式', '集合', '概率', '统计', '几何', '代数', '三角', '导数', '积分', '微分', '向量', '矩阵'],
+    '数学': [
+      ...this.mathSymbols, 
+      ...this.enhancedMathKeywords,
+      '函数', '方程', '不等式', '集合', '概率', '统计', '几何', '代数', 
+      '三角', '导数', '积分', '微分', '向量', '矩阵',
+      // 添加更多数学特征词汇
+      '已和数', '对于', '当z', '使得', '满足', '子集', '交集', '并集', '补集',
+      '定义域', '值域', '单调', '周期', '奇偶', '零点', '最值', '极值'
+    ],
     '物理': [...this.physicsTerms, '实验', '测量', '公式', '定律', '定理'],
     '化学': [...this.chemistryTerms, '实验', '元素', '周期表', '化学反应', '化学式'],
     '语文': [...this.chineseTerms, '阅读', '理解', '作文', '默写', '古诗', '文言文'],
@@ -127,8 +150,8 @@ export class QuestionClassifier {
       questionType = 'subjective';
     }
 
-    // 确定学科
-    const subject = this.detectSubject(text);
+    // 确定学科 - 使用增强的检测方法
+    const subject = this.enhancedDetectSubject(text);
 
     return {
       isQuestion,
@@ -171,12 +194,19 @@ export class QuestionClassifier {
     /填空|空格|______/.test(text) ||  // 填空题特征
     /选择|判断|计算|解答|证明/.test(text);  // 常见题型词汇
 
-    // 学科符号检测 - 扩展检测范围
+    // 学科符号检测 - 扩展检测范围，特别加强数学检测
     const hasMathSymbols = this.mathSymbols.some(symbol => text.includes(symbol)) ||
                            /[xyz]\s*[²³¹⁰]/.test(text) ||
                            /\d+\s*[×÷]\s*\d+/.test(text) ||
                            /[a-z]\([a-z]\)/.test(text) ||  // 函数表示
-                           /\d+[a-z]/.test(text);  // 代数表达式
+                           /\d+[a-z]/.test(text) ||  // 代数表达式
+                           // 加强集合相关符号检测
+                           /[∩∪∈∉⊂⊃∅]/.test(text) ||
+                           // 加强数学表达式检测
+                           /[(){}\[\]|]/.test(text) && /[xyz\d]/.test(text) ||
+                           // 检测数学关系表述
+                           /对于.*[xyz]/.test(text) ||
+                           /当.*[><=]/.test(text);
 
     // 文本长度
     const textLength = text.length;
@@ -199,32 +229,65 @@ export class QuestionClassifier {
     return subjectiveWords.some(word => text.includes(word));
   }
 
-  private detectSubject(text: string): string {
+  // 增强的学科检测方法
+  private enhancedDetectSubject(text: string): string {
     let maxMatches = 0;
     let detectedSubject = '未知';
 
     for (const [subject, keywords] of Object.entries(this.subjectKeywords)) {
-      const matches = keywords.filter(keyword => 
-        text.toLowerCase().includes(keyword.toLowerCase())
-      ).length;
+      let matches = 0;
       
+      // 基础关键词匹配
+      keywords.forEach(keyword => {
+        if (text.toLowerCase().includes(keyword.toLowerCase())) {
+          matches++;
+        }
+      });
+
+      // 针对数学的特殊加权检测
+      if (subject === '数学') {
+        // 检测数学表达式模式
+        if (/[xyz]\s*[><=≤≥≠]\s*[\d-]/.test(text)) matches += 3;
+        if (/\{.*[xyz].*\|.*\}/.test(text)) matches += 3; // 集合表示法
+        if (/[∩∪∈∉⊂⊃]/.test(text)) matches += 3; // 集合运算符
+        if (/[xyz]²|[xyz]³/.test(text)) matches += 2; // 幂次表示
+        if (/已知.*[xyz]/.test(text)) matches += 2; // 数学题常见开头
+        if (/求.*[xyz]/.test(text)) matches += 2; // 数学题常见结尾
+        if (/对于.*[xyz]/.test(text)) matches += 2; // 数学表述
+        if (/当.*[><=].*时/.test(text)) matches += 2; // 条件表述
+        if (/的了什么/.test(text)) matches += 1; // OCR常见错误但可能是数学内容
+      }
+
       if (matches > maxMatches) {
         maxMatches = matches;
         detectedSubject = subject;
       }
     }
 
-    // 如果没有明确匹配，通过文本特征推断
+    // 如果仍然未知，进行更深入的模式检测
     if (detectedSubject === '未知') {
-      if (/[a-zA-Z]{3,}/.test(text) && !/[一二三四五六七八九十]/.test(text)) {
+      // 英语检测
+      if (/[a-zA-Z]{5,}/.test(text) && !/[一二三四五六七八九十]/.test(text)) {
         detectedSubject = '英语';
-      } else if (/[古诗词文言]/.test(text)) {
+      }
+      // 语文检测
+      else if (/[古诗词文言]/.test(text)) {
         detectedSubject = '语文';
-      } else if (/[\d+\-×÷=<>≤≥]/.test(text)) {
+      }
+      // 数学检测 - 更宽泛的数学特征
+      else if (/[\d+\-×÷=<>≤≥≠(){}[\]|]/.test(text) && /[xyz]/.test(text)) {
+        detectedSubject = '数学';
+      }
+      // 基于选项内容的数学检测
+      else if (/[A-D]\.\s*\([^)]*[,\d\-+∞)]+\)/.test(text)) {
         detectedSubject = '数学';
       }
     }
 
     return detectedSubject;
+  }
+
+  private detectSubject(text: string): string {
+    return this.enhancedDetectSubject(text);
   }
 }

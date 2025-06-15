@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,9 +38,8 @@ export function OCRHistory({
       // 导出本地数据
       onExport();
 
-      // 同步数据到 Supabase - 修复 UUID 问题
+      // 同步数据到 Supabase
       const exportData = history.map(item => ({
-        // 移除 id 字段，让 Supabase 自动生成 UUID
         timestamp: item.timestamp.toISOString(),
         input_time: item.inputTime.toISOString(),
         output_time: item.outputTime?.toISOString(),
@@ -183,29 +183,31 @@ export function OCRHistory({
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 mb-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Target className="h-4 w-4 text-muted-foreground" />
-                        <span>置信度：{getClassificationConfidence(item)}</span>
-                      </div>
+                {/* 调整时间和置信度信息显示为两行 */}
+                <div className="grid grid-cols-1 gap-2 mb-4">
+                  {/* 第一行：输入时间和完成时间 */}
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span>输入：{format(item.inputTime, 'HH:mm:ss')}</span>
+                    </div>
+                    {item.outputTime && (
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span>输入：{format(item.inputTime, 'HH:mm:ss')}</span>
+                        <span>完成：{format(item.outputTime, 'HH:mm:ss')}</span>
                       </div>
+                    )}
+                  </div>
+                  
+                  {/* 第二行：耗时和置信度 */}
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-muted-foreground" />
+                      <span>耗时：{formatProcessingTime(item.inputTime, item.outputTime)}</span>
                     </div>
-                    <div className="flex items-center gap-4 text-sm">
-                      {item.outputTime && (
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <span>完成：{format(item.outputTime, 'HH:mm:ss')}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <Zap className="h-4 w-4 text-muted-foreground" />
-                        <span>耗时：{formatProcessingTime(item.inputTime, item.outputTime)}</span>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-muted-foreground" />
+                      <span>置信度：{getClassificationConfidence(item)}</span>
                     </div>
                   </div>
                 </div>
