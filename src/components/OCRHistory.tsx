@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +8,7 @@ import { format } from "date-fns";
 import { ImageViewDialog } from "./ImageViewDialog";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 interface OCRHistoryProps {
@@ -27,6 +27,7 @@ export function OCRHistory({
   onClear
 }: OCRHistoryProps) {
   const [currentPage, setCurrentPage] = useState(1);
+  const { user } = useAuth();
   
   const totalPages = Math.ceil(history.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -38,8 +39,14 @@ export function OCRHistory({
       // 导出本地数据
       onExport();
 
+      if (!user) {
+        toast.success("数据已导出到本地");
+        return;
+      }
+
       // 同步数据到 Supabase
       const exportData = history.map(item => ({
+        user_id: user.id,
         timestamp: item.timestamp.toISOString(),
         input_time: item.inputTime.toISOString(),
         output_time: item.outputTime?.toISOString(),

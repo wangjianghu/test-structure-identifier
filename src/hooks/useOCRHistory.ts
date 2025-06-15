@@ -4,6 +4,7 @@ import { HistoryItem, TextHistoryItem, ImageHistoryItem, QuestionTypeExample } f
 import { OCRResult } from '@/lib/enhancedOCR';
 import { ParsedQuestion } from '@/lib/parser';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 // 生成8位随机正整数
 const generateDisplayId = (): number => {
@@ -13,21 +14,28 @@ const generateDisplayId = (): number => {
 export function useOCRHistory() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [questionTypeExamples, setQuestionTypeExamples] = useState<QuestionTypeExample[]>([]);
+  const { user } = useAuth();
 
   const saveToSupabase = async (subject: string, questionType: string, structureExample: string) => {
     try {
+      if (!user) {
+        console.warn('用户未登录，无法保存到 Supabase');
+        return;
+      }
+
       console.log('保存到 Supabase:', { subject, questionType, structureExample });
       
       // 检查是否已存在相同的示例
       const { data: existingData, error: checkError } = await supabase
         .from('question_type_examples')
         .select('*')
+        .eq('user_id', user.id)
         .eq('subject', subject)
         .eq('question_type', questionType)
         .eq('structure_example', structureExample)
-        .single();
+        .maybeSingle();
 
-      if (checkError && checkError.code !== 'PGRST116') {
+      if (checkError) {
         console.error('检查现有记录时出错:', checkError);
         return;
       }
@@ -50,6 +58,7 @@ export function useOCRHistory() {
         const { error: insertError } = await supabase
           .from('question_type_examples')
           .insert({
+            user_id: user.id,
             subject,
             question_type: questionType,
             structure_example: structureExample,
@@ -101,7 +110,7 @@ export function useOCRHistory() {
 
     setHistory(prev => [historyItem, ...prev]);
     return historyItem;
-  }, []);
+  }, [user]);
 
   const addImageToHistory = useCallback(async (
     file: File, 
@@ -124,7 +133,7 @@ export function useOCRHistory() {
       displayId: generateDisplayId(),
       timestamp: inputTime,
       inputTime,
-      outputTime: analysisResult ? new Date() : undefined, // 只有当有分析结果时才设置完成时间
+      outputTime: analysisResult ? new Date() : undefined,
       inputType: 'image',
       selectedSubject,
       questionTypeExample,
@@ -150,14 +159,14 @@ export function useOCRHistory() {
 
     setHistory(prev => [historyItem, ...prev]);
     return historyItem;
-  }, []);
+  }, [user]);
 
   const updateHistoryItemAnalysis = useCallback((id: string, analysisResult: ParsedQuestion) => {
     setHistory(prev => prev.map(item => {
       if (item.id === id && item.inputType === 'image') {
         const updatedItem = {
           ...item,
-          outputTime: new Date(), // 更新完成时间
+          outputTime: new Date(),
           analysisResult: {
             text: analysisResult.body,
             questionType: analysisResult.questionType,
@@ -178,7 +187,7 @@ export function useOCRHistory() {
       }
       return item;
     }));
-  }, []);
+  }, [user]);
 
   const collectQuestionTypeExample = useCallback((subject: string, questionType: string, structureExample: string) => {
     setQuestionTypeExamples(prev => {
