@@ -2,7 +2,7 @@
 import * as React from "react";
 import { Textarea, type TextareaProps } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Image as ImageIcon, Zap, X, Eye } from "lucide-react";
+import { Image as ImageIcon, Zap, X, Eye, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ImageViewDialog } from "./ImageViewDialog";
 
@@ -14,6 +14,7 @@ interface QuestionInputProps extends Omit<TextareaProps, 'className'> {
   className?: string;
   onAnalyze: () => void;
   isAnalyzing: boolean;
+  onClear?: () => void;
 }
 
 export function QuestionInput({ 
@@ -24,6 +25,7 @@ export function QuestionInput({
   className, 
   onAnalyze, 
   isAnalyzing,
+  onClear,
   value,
   ...props 
 }: QuestionInputProps) {
@@ -74,6 +76,14 @@ export function QuestionInput({
     }
     return null;
   }, [value]);
+
+  const handleClear = () => {
+    if (onClear) {
+      onClear();
+    }
+  };
+
+  const hasContent = (typeof value === 'string' && value.trim()) || uploadedImages.length > 0;
 
   return (
     <div className={cn(
@@ -159,15 +169,28 @@ export function QuestionInput({
           )}
         </div>
 
-        <Button 
-          onClick={onAnalyze} 
-          disabled={isAnalyzing || isOcrLoading || (!value && uploadedImages.length === 0)} 
-          size="sm"
-          className="ml-auto"
-        >
-          <Zap className="mr-2 h-4 w-4" />
-          {isAnalyzing ? "分析中..." : "开始分析"}
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* 清空按钮 */}
+          <Button 
+            onClick={handleClear} 
+            disabled={isAnalyzing || isOcrLoading || !hasContent} 
+            size="sm"
+            variant="outline"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            清空
+          </Button>
+
+          {/* 分析按钮 */}
+          <Button 
+            onClick={onAnalyze} 
+            disabled={isAnalyzing || isOcrLoading || (!value && uploadedImages.length === 0)} 
+            size="sm"
+          >
+            <Zap className="mr-2 h-4 w-4" />
+            {isAnalyzing ? "分析中..." : "开始分析"}
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -127,6 +127,15 @@ const Index = () => {
     setOcrResults(prev => prev.filter((_, i) => i !== index));
   }, []);
 
+  // 清空输入框内容（文本和图片）
+  const handleClear = useCallback(() => {
+    setInputText("");
+    setUploadedImages([]);
+    setOcrResults([]);
+    setAnalysisResult(null);
+    toast.success("已清空输入内容");
+  }, []);
+
   // 处理文本变化
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputText(e.target.value);
@@ -206,6 +215,7 @@ const Index = () => {
                 disabled={isOcrLoading || isLoading}
                 onAnalyze={handleAnalyze}
                 isAnalyzing={isLoading}
+                onClear={handleClear}
               />
               
               {/* OCR 处理详情显示 */}
