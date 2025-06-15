@@ -1,73 +1,168 @@
-# Welcome to your Lovable project
 
-## Project info
+# 智能识别试题结构
 
-**URL**: https://lovable.dev/projects/c5fe2474-d81b-4c79-850f-89431dfc1704
+一个基于 AI 技术的智能试题结构识别系统，支持文本输入和图片 OCR 识别，能够自动分析试题的学科、题型、选项等结构信息。
 
-## How can I edit this code?
+## 主要功能
 
-There are several ways of editing your application.
+### 📝 试题结构识别
+- **智能分析**：自动识别试题的学科类型（数学、物理、化学、语文、英语等）
+- **题型分类**：支持选择题、填空题、解答题、证明题等多种题型识别
+- **结构解析**：自动提取题干、选项、答案、解析等结构化信息
+- **准确度高**：基于机器学习算法，识别准确率持续优化
 
-**Use Lovable**
+### 🖼️ 多模态输入支持
+- **文本输入**：直接粘贴试题文本进行分析
+- **图片识别**：支持上传图片进行 OCR 文字识别
+- **多引擎 OCR**：
+  - Mistral.ai 高精度识别（需配置 API）
+  - 阿里云 OCR 服务（需配置密钥）
+  - 内置 OCR 引擎（Tesseract.js）
+- **智能预处理**：自动优化图片质量，提升识别准确率
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/c5fe2474-d81b-4c79-850f-89431dfc1704) and start prompting.
+### ⚙️ 识别优化参数
+- **学科选择**：支持数学、物理、化学、语文、英语等学科
+- **题型结构示例**：可自定义题型结构模板，提升识别准确性
+- **云端同步**：自定义的题型结构数据自动保存到云端数据库
+- **参数持久化**：优化参数设置自动保存，下次使用时自动恢复
 
-Changes made via Lovable will be committed automatically to this repo.
+### 📊 历史记录管理
+- **完整记录**：保存所有分析记录，包括输入内容、识别结果、处理时间等
+- **详细统计**：显示 OCR 置信度、分类准确度、处理耗时等详细信息
+- **批量操作**：支持导出历史记录、清空记录等批量操作
+- **云端备份**：支持将历史记录同步到云端数据库
 
-**Use your preferred IDE**
+## 使用说明
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 基本使用流程
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. **选择识别参数**（可选）
+   - 在页面顶部选择学科类型
+   - 选择对应的题型
+   - 设置题型结构示例（用于提升识别准确性）
 
-Follow these steps:
+2. **输入试题内容**
+   - **文本输入**：直接在文本框中粘贴试题内容
+   - **图片输入**：点击图片按钮上传图片，或直接粘贴图片（Ctrl+V）
+   - **混合输入**：可同时输入文本和上传图片
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+3. **开始分析**
+   - 点击"开始分析"按钮
+   - 系统将自动进行 OCR 识别（如有图片）和结构分析
+   - 等待分析完成，查看结果
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+4. **查看结果**
+   - 在分析结果区域查看详细的结构化信息
+   - 包括学科分类、题型判断、选项提取等
 
-# Step 3: Install the necessary dependencies.
-npm i
+### OCR 增强配置
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+#### Mistral.ai 配置
+1. 获取 Mistral.ai API Key
+2. 点击右上角"OCR 增强"按钮
+3. 输入 API Key 并保存
+4. 配置后将使用 Mistral.ai 进行高精度图片识别
+
+#### 阿里云 OCR 配置
+1. 在阿里云控制台开通 OCR 服务
+2. 获取 Access Key ID 和 Access Key Secret
+3. 在"OCR 增强"配置中输入相关信息
+4. 配置后将使用阿里云 OCR 进行图片识别
+
+### 历史记录功能
+
+- **查看记录**：右侧面板显示所有分析历史
+- **详细信息**：每条记录包含输入时间、处理耗时、置信度等
+- **图片预览**：点击历史记录中的图片可查看大图
+- **记录管理**：支持删除单条记录或清空所有记录
+- **数据导出**：可导出历史记录并同步到云端
+
+### 快捷操作
+
+- **粘贴图片**：在任意位置按 Ctrl+V 可直接粘贴剪贴板中的图片
+- **清空内容**：点击"清空"按钮可清空输入内容
+- **同步清空**：勾选"同步清空识别优化参数"可同时清空学科和题型设置
+- **面板切换**：点击右上角按钮可收起/展开历史记录面板
+
+## 技术特性
+
+### 前端技术栈
+- **React 18**：现代化前端框架
+- **TypeScript**：类型安全的开发体验
+- **Tailwind CSS**：快速样式开发
+- **Shadcn UI**：高质量 UI 组件库
+- **Vite**：快速构建工具
+
+### 核心算法
+- **OCR 引擎**：Tesseract.js + 图像预处理
+- **文本分析**：基于规则和机器学习的混合方法
+- **学科分类**：特征工程 + 模式识别
+- **结构解析**：正则表达式 + 上下文分析
+
+### 数据管理
+- **Supabase**：实时数据库和用户认证
+- **本地存储**：IndexedDB 离线数据存储
+- **云端同步**：自动备份和跨设备同步
+
+## 支持的学科和题型
+
+### 学科类型
+- 数学：代数、几何、概率统计等
+- 物理：力学、电磁学、光学等
+- 化学：有机化学、无机化学、物理化学等
+- 语文：阅读理解、作文、古诗词等
+- 英语：语法、阅读、写作等
+
+### 题型分类
+- **选择题**：单选题、多选题
+- **填空题**：计算填空、概念填空
+- **解答题**：计算题、证明题、分析题
+- **应用题**：实际问题建模求解
+- **综合题**：跨知识点综合应用
+
+## 部署说明
+
+### 本地开发
+```bash
+# 安装依赖
+npm install
+
+# 启动开发服务器
 npm run dev
+
+# 构建生产版本
+npm run build
 ```
 
-**Edit a file directly in GitHub**
+### 环境变量配置
+```env
+# Supabase 配置
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+# OCR 服务配置（可选）
+VITE_MISTRAL_API_KEY=your_mistral_api_key
+VITE_ALICLOUD_ACCESS_KEY_ID=your_alicloud_access_key_id
+VITE_ALICLOUD_ACCESS_KEY_SECRET=your_alicloud_access_key_secret
+```
 
-**Use GitHub Codespaces**
+## 开源协议
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+本项目采用 MIT 开源协议，欢迎贡献代码和提出建议。
 
-## What technologies are used for this project?
+## 项目地址
 
-This project is built with:
+- **GitHub**: https://github.com/wangjianghu/Test-Structure-Identifier
+- **在线体验**: https://lovable.dev/projects/c5fe2474-d81b-4c79-850f-89431dfc1704
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 反馈与支持
 
-## How can I deploy this project?
+如有问题或建议，欢迎通过以下方式联系：
 
-Simply open [Lovable](https://lovable.dev/projects/c5fe2474-d81b-4c79-850f-89431dfc1704) and click on Share -> Publish.
+- 提交 GitHub Issue
+- 发送邮件反馈
+- 加入技术交流群
 
-## Can I connect a custom domain to my Lovable project?
+---
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+*让试题结构识别变得更加智能和高效！*

@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { Textarea, type TextareaProps } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -31,7 +30,16 @@ export function QuestionInput({
   ...props 
 }: QuestionInputProps) {
   const [imagePreviews, setImagePreviews] = React.useState<string[]>([]);
-  const [clearOptimizationParams, setClearOptimizationParams] = React.useState(false);
+  const [clearOptimizationParams, setClearOptimizationParams] = React.useState(() => {
+    // 从 localStorage 读取持久化状态
+    const saved = localStorage.getItem('clearOptimizationParams');
+    return saved ? JSON.parse(saved) : false;
+  });
+
+  // 持久化状态到 localStorage
+  React.useEffect(() => {
+    localStorage.setItem('clearOptimizationParams', JSON.stringify(clearOptimizationParams));
+  }, [clearOptimizationParams]);
 
   React.useEffect(() => {
     // 创建图片预览URLs

@@ -101,7 +101,8 @@ export function SubjectAndTypeSelector({
   return (
     <Card className="mb-6">
       <CardContent className="p-6">
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-5 items-start">
+        {/* 单行布局：选择学科、选择题型、题型结构示例、OCR 增强 */}
+        <div className="flex items-center gap-6 flex-wrap lg:flex-nowrap">
           <SubjectSelector
             selectedSubject={selectedSubject}
             onSubjectChange={onSubjectChange}
@@ -113,7 +114,7 @@ export function SubjectAndTypeSelector({
             onQuestionTypeChange={handleQuestionTypeChange}
           />
           
-          <div className="xl:col-span-1">
+          <div className="flex-1 min-w-0">
             <StructureExampleInput
               selectedSubject={selectedSubject}
               selectedQuestionType={selectedQuestionType}
@@ -123,7 +124,7 @@ export function SubjectAndTypeSelector({
             />
           </div>
           
-          <div className="flex justify-start xl:justify-end">
+          <div className="flex-shrink-0">
             <MistralConfig />
           </div>
         </div>
