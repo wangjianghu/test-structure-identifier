@@ -18,11 +18,9 @@ export class TesseractRecognizer {
       params: {
         tessedit_char_whitelist: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz已知函数定义域值域集合方程不等式求解计算证明判断若设对于正实数元素中的理由说明取值范围一二三四五六七八九十零百千万亿是有在了和对上大中小到为不得可以会用从被把这那里个着么什没过又要下去来回还都能与就其所以及将根据可得因为所以由于(),[]{}=+-×÷？。，、（）：；！<>≤≥≠∞∑∫√²³¹⁰±∩∪∈∉⊂⊃∅∠∴∵∂∆∇sincostan",
         preserve_interword_spaces: '1',
-        tessedit_pageseg_mode: PSM.AUTO,
         language_model_ngram_on: '1',
         textord_really_old_xheight: '1',
-        textord_min_xheight: '10',
-        preserve_interword_spaces: '1'
+        textord_min_xheight: '10'
       }
     });
     results.push(result1);
@@ -35,8 +33,7 @@ export class TesseractRecognizer {
       oem: OEM.LSTM_ONLY,
       dpi: '300',
       params: {
-        preserve_interword_spaces: '1',
-        tessedit_pageseg_mode: PSM.SINGLE_BLOCK
+        preserve_interword_spaces: '1'
       }
     });
     results.push(result2);
