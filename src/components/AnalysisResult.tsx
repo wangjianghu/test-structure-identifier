@@ -1,9 +1,10 @@
 
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { ParsedQuestion } from "@/lib/parser";
-import { ListChecks, Hash, Type, Book, Copy } from "lucide-react";
+import { Copy, FileText, BookOpen, HelpCircle, Calculator } from "lucide-react";
+import { ParsedQuestion } from "@/lib/parser";
 import { toast } from "sonner";
 
 interface AnalysisResultProps {
@@ -11,131 +12,243 @@ interface AnalysisResultProps {
 }
 
 export function AnalysisResult({ result }: AnalysisResultProps) {
-  const copyToClipboard = async (text: string, description: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success(`已复制${description}到剪贴板`);
-    } catch (err) {
-      toast.error("复制失败，请手动复制");
-    }
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`已复制${label}到剪贴板`);
   };
 
-  const copyQuestionBody = () => {
-    const text = result.questionNumber 
-      ? `${result.questionNumber}. ${result.body}` 
-      : result.body;
-    copyToClipboard(text, "题干");
-  };
-
-  const copyOptions = () => {
-    if (!result.options) return;
-    const text = result.options
-      .map(option => `${option.key}. ${option.value}`)
-      .join('\n');
-    copyToClipboard(text, "选项");
-  };
-
-  const copyAll = () => {
-    let text = '';
+  const copyAllResults = () => {
+    let fullText = `学科: ${result.subject}\n题型: ${result.questionType}\n`;
     
-    // 题干
-    if (result.questionNumber) {
-      text += `题号: ${result.questionNumber}\n`;
-    }
-    text += `学科: ${result.subject}\n`;
-    text += `题型: ${result.questionType}\n`;
-    text += `题干: ${result.body}\n`;
-    
-    // 选项
-    if (result.options && result.options.length > 0) {
-      text += `选项:\n`;
-      result.options.forEach(option => {
-        text += `${option.key}. ${option.value}\n`;
-      });
+    if (result.hasFormulas) {
+      fullText += `公式类型: ${result.formulaType || '未知'}\n`;
     }
     
-    copyToClipboard(text, "全部内容");
+    if (result.parentQuestion) {
+      fullText += `\n父题题号: ${result.parentQuestion.number}\n`;
+      fullText += `父题题干: ${result.parentQuestion.body}\n`;
+      
+      if (result.subQuestions) {
+        fullText += `\n子题:\n`;
+        result.subQuestions.forEach((subQ, index) => {
+          fullText += `  (${subQ.number}) ${subQ.body}\n`;
+          if (subQ.options) {
+            subQ.options.forEach(option => {
+              fullText += `    ${option.key}. ${option.value}\n`;
+            });
+          }
+        });
+      }
+    } else {
+      if (result.questionNumber) {
+        fullText += `题号: ${result.questionNumber}\n`;
+      }
+      fullText += `题干: ${result.body}\n`;
+      
+      if (result.options) {
+        fullText += `选项:\n`;
+        result.options.forEach(option => {
+          fullText += `${option.key}. ${option.value}\n`;
+        });
+      }
+    }
+    
+    copyToClipboard(fullText, "完整分析结果");
   };
 
   return (
-    <Card className="w-full max-w-2xl animate-fade-in">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex flex-col gap-2">
-            <span>分析结果</span>
-            <div className="flex items-center gap-2">
-              {result.subject && result.subject !== '未知' && (
-                <Badge variant="outline" className="text-xs">
-                  <Book className="mr-1 h-3 w-3" /> {result.subject}
-                </Badge>
-              )}
-              {result.questionType && (
-                <Badge variant="secondary" className="text-xs">
-                  <Type className="mr-1 h-3 w-3" /> {result.questionType}
+    <Card className="w-full">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <CardTitle className="text-lg font-semibold text-primary flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              题目结构分析
+            </CardTitle>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <BookOpen className="h-3 w-3" />
+                {result.subject}
+              </Badge>
+              <Badge variant="outline" className="flex items-center gap-1">
+                <HelpCircle className="h-3 w-3" />
+                {result.questionType}
+              </Badge>
+              {result.hasFormulas && (
+                <Badge variant="default" className="flex items-center gap-1 bg-blue-100 text-blue-800 border-blue-200">
+                  <Calculator className="h-3 w-3" />
+                  {result.formulaType === 'latex' ? 'LaTeX公式' : 
+                   result.formulaType === 'mathtype' ? 'MathType公式' : 
+                   result.formulaType === 'mixed' ? '混合公式' : '数学公式'}
                 </Badge>
               )}
             </div>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={copyAll}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={copyAllResults}
+            className="flex items-center gap-1 text-xs"
           >
-            <Copy className="mr-1 h-4 w-4" />
+            <Copy className="h-3 w-3" />
             复制全部
           </Button>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold flex items-center text-sm">
-              <Hash className="mr-2 h-4 w-4 text-primary" />
-              题干 {result.questionNumber && `(题号: ${result.questionNumber})`}
-            </h3>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={copyQuestionBody}
-              className="text-xs"
-            >
-              <Copy className="mr-1 h-3 w-3" />
-              复制
-            </Button>
-          </div>
-          <div className="text-sm text-muted-foreground bg-slate-50 dark:bg-slate-800 p-3 rounded-md border leading-relaxed">
-            {result.body}
-          </div>
         </div>
-        {result.options && result.options.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold flex items-center text-sm">
-                <ListChecks className="mr-2 h-4 w-4 text-primary" />
-                选项
-              </h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={copyOptions}
-                className="text-xs"
+      </CardHeader>
+      
+      <CardContent className="space-y-4">
+        {/* 复合题结构 */}
+        {result.parentQuestion ? (
+          <div className="space-y-4">
+            {/* 父题 */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-sm text-muted-foreground">父题信息</h4>
+              </div>
+              
+              {result.parentQuestion.number && (
+                <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-900 rounded">
+                  <div>
+                    <span className="text-sm font-medium">父题题号:</span>
+                    <span className="ml-2 text-sm">{result.parentQuestion.number}</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyToClipboard(result.parentQuestion!.number!, "父题题号")}
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+              
+              <div className="flex items-start justify-between p-2 bg-gray-50 dark:bg-gray-900 rounded">
+                <div className="flex-1">
+                  <span className="text-sm font-medium">父题题干:</span>
+                  <p className="mt-1 text-sm whitespace-pre-wrap">{result.parentQuestion.body}</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(result.parentQuestion!.body, "父题题干")}
+                  className="ml-2 shrink-0"
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+
+            {/* 子题 */}
+            {result.subQuestions && result.subQuestions.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium text-sm text-muted-foreground">子题信息</h4>
+                </div>
+                
+                {result.subQuestions.map((subQ, index) => (
+                  <div key={index} className="border rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+                      <div>
+                        <span className="text-sm font-medium">子题题号:</span>
+                        <span className="ml-2 text-sm">({subQ.number})</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(`(${subQ.number})`, "子题题号")}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    
+                    <div className="flex items-start justify-between p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+                      <div className="flex-1">
+                        <span className="text-sm font-medium">子题题干:</span>
+                        <p className="mt-1 text-sm whitespace-pre-wrap">{subQ.body}</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(subQ.body, "子题题干")}
+                        className="ml-2 shrink-0"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    
+                    {subQ.options && subQ.options.length > 0 && (
+                      <div className="space-y-1">
+                        <span className="text-sm font-medium">选项:</span>
+                        {subQ.options.map((option, optIndex) => (
+                          <div key={optIndex} className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                            <span className="text-sm">{option.key}. {option.value}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyToClipboard(`${option.key}. ${option.value}`, "选项")}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* 普通题目结构 */
+          <div className="space-y-2">
+            {result.questionNumber && (
+              <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-900 rounded">
+                <div>
+                  <span className="text-sm font-medium">题号:</span>
+                  <span className="ml-2 text-sm">{result.questionNumber}</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyToClipboard(result.questionNumber!, "题号")}
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+            
+            <div className="flex items-start justify-between p-2 bg-gray-50 dark:bg-gray-900 rounded">
+              <div className="flex-1">
+                <span className="text-sm font-medium">题干:</span>
+                <p className="mt-1 text-sm whitespace-pre-wrap">{result.body}</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => copyToClipboard(result.body, "题干")}
+                className="ml-2 shrink-0"
               >
-                <Copy className="mr-1 h-3 w-3" />
-                复制
+                <Copy className="h-3 w-3" />
               </Button>
             </div>
-            <ul className="space-y-2">
-              {result.options.map((option) => (
-                <li key={option.key} className="flex items-start gap-3 text-sm">
-                  <Badge variant="outline" className="mt-0.5 text-xs min-w-[24px] justify-center">
-                    {option.key}
-                  </Badge>
-                  <span className="text-muted-foreground leading-relaxed flex-1">
-                    {option.value}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            
+            {result.options && result.options.length > 0 && (
+              <div className="space-y-1">
+                <span className="text-sm font-medium">选项:</span>
+                {result.options.map((option, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                    <span className="text-sm">{option.key}. {option.value}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyToClipboard(`${option.key}. ${option.value}`, "选项")}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </CardContent>

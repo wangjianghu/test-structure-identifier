@@ -5,6 +5,19 @@ export interface ParsedQuestion {
   questionType: string;
   body: string;
   options: { key: string; value: string }[] | null;
+  // 新增复合题结构
+  parentQuestion?: {
+    number: string | null;
+    body: string;
+  };
+  subQuestions?: Array<{
+    number: string;
+    body: string;
+    options?: { key: string; value: string }[];
+  }>;
+  // 新增公式信息
+  hasFormulas: boolean;
+  formulaType?: 'latex' | 'mathtype' | 'mixed' | null;
 }
 
 // 题型分类定义
@@ -77,19 +90,32 @@ export function parseQuestion(text: string): ParsedQuestion {
       questionType: '未知',
       body: '',
       options: null,
+      hasFormulas: false,
     };
   }
 
-  let remainingText = originalText;
+  // 1. 检测和处理公式
+  const formulaInfo = detectAndProcessFormulas(originalText);
+  let processedText = formulaInfo.processedText;
 
-  // 1. 提取题号
+  // 2. 检测是否为复合题
+  const compositeInfo = detectCompositeQuestion(processedText);
+  
+  if (compositeInfo.isComposite) {
+    return parseCompositeQuestion(processedText, formulaInfo);
+  }
+
+  // 3. 常规题目解析
+  let remainingText = processedText;
+
+  // 提取题号
   const questionNumberMatch = remainingText.match(/^(?<number>\d+)\s*[.\uff0e\s]/);
   const questionNumber = questionNumberMatch?.groups?.number || null;
   if (questionNumber) {
     remainingText = remainingText.replace(/^(?<number>\d+)\s*[.\uff0e\s]/, "").trim();
   }
 
-  // 2. 提取选项
+  // 提取选项
   const options: { key: string; value: string }[] = [];
   const optionRegex = /(?<key>[A-Z])\s*[.\uff0e\s](?<value>.*?)(?=\s[A-Z][.\uff0e\s]|$)/g;
   
@@ -107,10 +133,10 @@ export function parseQuestion(text: string): ParsedQuestion {
       }
   }
 
-  // 3. 学科检测
+  // 学科检测
   const subject = detectSubject(body);
 
-  // 4. 题型检测
+  // 题型检测
   const questionType = detectQuestionType(body, options.length > 0, subject);
 
   return {
@@ -119,6 +145,171 @@ export function parseQuestion(text: string): ParsedQuestion {
     questionType,
     body,
     options: options.length > 0 ? options : null,
+    hasFormulas: formulaInfo.hasFormulas,
+    formulaType: formulaInfo.formulaType,
+  };
+}
+
+// 新增：检测和处理公式
+function detectAndProcessFormulas(text: string): {
+  processedText: string;
+  hasFormulas: boolean;
+  formulaType: 'latex' | 'mathtype' | 'mixed' | null;
+} {
+  let hasLatex = false;
+  let hasMathType = false;
+  let processedText = text;
+
+  // 检测LaTeX公式模式
+  const latexPatterns = [
+    /\$\$[^$]+\$\$/g,           // 块级公式 $$...$$
+    /\$[^$\n]+\$/g,            // 行内公式 $...$
+    /\\begin\{[^}]+\}.*?\\end\{[^}]+\}/gs,  // LaTeX环境
+    /\\[a-zA-Z]+\{[^}]*\}/g,   // LaTeX命令 \command{...}
+    /\\[a-zA-Z]+/g,            // 简单LaTeX命令 \alpha, \beta等
+    /\\\([^)]+\\\)/g,          // 行内公式 \(...\)
+    /\\\[[^\]]+\\\]/g,         // 块级公式 \[...\]
+  ];
+
+  // 检测MathType/Equation Editor模式
+  const mathTypePatterns = [
+    /\{[^{}]*\^[^{}]*\}/g,     // 上标 {base^superscript}
+    /\{[^{}]*_[^{}]*\}/g,      // 下标 {base_subscript}
+    /√\([^)]+\)/g,             // 根号
+    /∫[^∫]*d[xyz]/g,           // 积分
+    /∑[^∑]*=/g,                // 求和
+    /∏[^∏]*=/g,                // 连乘
+    /lim[^→]*→/g,              // 极限
+  ];
+
+  // 检测LaTeX
+  latexPatterns.forEach(pattern => {
+    if (pattern.test(text)) {
+      hasLatex = true;
+    }
+  });
+
+  // 检测MathType
+  mathTypePatterns.forEach(pattern => {
+    if (pattern.test(text)) {
+      hasMathType = true;
+    }
+  });
+
+  // 标准化公式格式
+  if (hasLatex || hasMathType) {
+    // 统一公式表示，保持原有格式但添加标记
+    processedText = processedText
+      // 保护LaTeX公式不被误处理
+      .replace(/\$\$([^$]+)\$\$/g, '【数学公式：$1】')
+      .replace(/\$([^$\n]+)\$/g, '【数学公式：$1】')
+      .replace(/\\begin\{([^}]+)\}(.*?)\\end\{[^}]+\}/gs, '【数学公式：$1环境】')
+      // 保护常见数学符号
+      .replace(/([≤≥≠∞∑∫√²³¹⁰±∩∪∈∉⊂⊃∅∠∴∵∝∂∆∇])/g, '【数学符号：$1】')
+      // 保护分数表示
+      .replace(/(\d+)\/(\d+)/g, '【分数：$1/$2】');
+  }
+
+  const formulaType = hasLatex && hasMathType ? 'mixed' : 
+                     hasLatex ? 'latex' : 
+                     hasMathType ? 'mathtype' : null;
+
+  return {
+    processedText,
+    hasFormulas: hasLatex || hasMathType,
+    formulaType
+  };
+}
+
+// 新增：检测复合题
+function detectCompositeQuestion(text: string): { isComposite: boolean } {
+  // 检测复合题的特征
+  const compositeIndicators = [
+    /阅读下面.*?完成.*?题/,
+    /根据.*?材料.*?回答.*?问题/,
+    /阅读.*?材料.*?完成.*?小题/,
+    /根据.*?回答下列问题/,
+    /阅读.*?回答.*?问题/,
+    // 检测多个独立题号的模式
+    /\(\s*\d+\s*\).*?\(\s*\d+\s*\)/s,
+    /\d+\s*[.\uff0e].*?\d+\s*[.\uff0e]/s,
+  ];
+
+  const isComposite = compositeIndicators.some(pattern => pattern.test(text));
+  
+  return { isComposite };
+}
+
+// 新增：解析复合题
+function parseCompositeQuestion(text: string, formulaInfo: any): ParsedQuestion {
+  // 提取父题信息
+  const parentQuestionMatch = text.match(/^(?<number>\d+)\s*[.\uff0e]\s*(?<body>.*?)(?=\(\s*\d+\s*\)|$)/s);
+  
+  let parentQuestion = null;
+  let remainingText = text;
+
+  if (parentQuestionMatch?.groups) {
+    parentQuestion = {
+      number: parentQuestionMatch.groups.number,
+      body: parentQuestionMatch.groups.body.trim()
+    };
+    remainingText = text.substring(parentQuestionMatch[0].length).trim();
+  }
+
+  // 提取子题
+  const subQuestions: Array<{
+    number: string;
+    body: string;
+    options?: { key: string; value: string }[];
+  }> = [];
+
+  // 匹配子题模式：(1) 或 1. 或 ① 等
+  const subQuestionPattern = /(?:\(\s*(\d+)\s*\)|(\d+)\s*[.\uff0e]|([①②③④⑤⑥⑦⑧⑨⑩]))\s*(.*?)(?=(?:\(\s*\d+\s*\)|(?:\d+)\s*[.\uff0e]|[①②③④⑤⑥⑦⑧⑨⑩])|$)/gs;
+  
+  let subMatch;
+  while ((subMatch = subQuestionPattern.exec(remainingText)) !== null) {
+    const subNumber = subMatch[1] || subMatch[2] || subMatch[3];
+    const subBody = subMatch[4].trim();
+    
+    if (subNumber && subBody) {
+      // 检查是否有选项
+      const optionRegex = /([A-Z])\s*[.\uff0e\s](.*?)(?=\s[A-Z][.\uff0e\s]|$)/g;
+      const options: { key: string; value: string }[] = [];
+      
+      const firstOptionMatch = subBody.match(/\s([A-Z])\s*[.\uff0e\s]/);
+      let cleanSubBody = subBody;
+      
+      if (firstOptionMatch && firstOptionMatch.index) {
+        cleanSubBody = subBody.substring(0, firstOptionMatch.index).trim();
+        const optionsString = subBody.substring(firstOptionMatch.index).trim();
+        let optionMatch;
+        while ((optionMatch = optionRegex.exec(optionsString)) !== null) {
+          options.push({ key: optionMatch[1], value: optionMatch[2].trim() });
+        }
+      }
+
+      subQuestions.push({
+        number: subNumber,
+        body: cleanSubBody,
+        options: options.length > 0 ? options : undefined
+      });
+    }
+  }
+
+  // 检测整体学科
+  const fullText = (parentQuestion?.body || '') + ' ' + subQuestions.map(sq => sq.body).join(' ');
+  const subject = detectSubject(fullText);
+
+  return {
+    subject,
+    questionNumber: parentQuestion?.number || null,
+    questionType: '复合题',
+    body: parentQuestion?.body || text,
+    options: null,
+    parentQuestion,
+    subQuestions: subQuestions.length > 0 ? subQuestions : undefined,
+    hasFormulas: formulaInfo.hasFormulas,
+    formulaType: formulaInfo.formulaType,
   };
 }
 
