@@ -5,7 +5,7 @@ import { OCRHistory } from "@/components/OCRHistory";
 import { UserProfile } from "@/components/UserProfile";
 import { ParsedQuestion } from "@/lib/parser";
 import { useOCRHistory } from "@/hooks/useOCRHistory";
-import { SecureOCRConfig } from "@/components/SecureOCRConfig";
+import { SubjectAndTypeSelector } from "@/components/SubjectAndTypeSelector";
 
 export default function Index() {
   const [analysisResult, setAnalysisResult] = useState<ParsedQuestion | null>(null);
@@ -18,8 +18,7 @@ export default function Index() {
     updateHistoryItemAnalysis,
     clearHistory, 
     removeItem,
-    exportHistory,
-    addToHistory // Legacy method for backward compatibility
+    exportHistory
   } = useOCRHistory();
 
   const handleAnalysisComplete = useCallback((result: ParsedQuestion | null) => {
@@ -57,11 +56,8 @@ export default function Index() {
         <div className="container flex h-14 items-center justify-between">
           <div className="flex items-center gap-6">
             <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              试题智能分析系统
+              智能识别试题结构
             </h1>
-            <nav className="hidden md:flex items-center gap-4">
-              <SecureOCRConfig />
-            </nav>
           </div>
           
           <div className="flex items-center gap-3">
@@ -75,6 +71,13 @@ export default function Index() {
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {/* Question Input */}
           <div className="flex flex-col gap-4">
+            <SubjectAndTypeSelector
+              selectedSubject={selectedSubject}
+              onSubjectChange={setSelectedSubject}
+              questionTypeExample={questionTypeExample}
+              onQuestionTypeExampleChange={setQuestionTypeExample}
+            />
+
             <QuestionInput 
               onAnalysisComplete={handleAnalysisComplete}
               onTextSubmit={handleTextSubmit}
@@ -83,35 +86,6 @@ export default function Index() {
               selectedSubject={selectedSubject}
               questionTypeExample={questionTypeExample}
             />
-
-            {/* Subject and Question Type Selection */}
-            <div className="flex items-center gap-4">
-              <select
-                className="flex h-10 w-auto rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                value={selectedSubject}
-                onChange={(e) => setSelectedSubject(e.target.value)}
-              >
-                <option value="数学">数学</option>
-                <option value="物理">物理</option>
-                <option value="化学">化学</option>
-                <option value="语文">语文</option>
-                <option value="英语">英语</option>
-                <option value="历史">历史</option>
-                <option value="地理">地理</option>
-                <option value="政治">政治</option>
-                <option value="生物">生物</option>
-                <option value="艺术">艺术</option>
-                <option value="体育">体育</option>
-              </select>
-
-              <input
-                type="text"
-                placeholder="题型结构示例 (例如: 1. ... A. ... B. ...)"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                value={questionTypeExample}
-                onChange={(e) => setQuestionTypeExample(e.target.value)}
-              />
-            </div>
 
             {/* Analysis Result Display */}
             {analysisResult && (
