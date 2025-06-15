@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { HistoryItem, TextHistoryItem, ImageHistoryItem } from '@/types/ocrHistory';
 import { OCRResult } from '@/lib/enhancedOCR';
@@ -14,11 +13,11 @@ export function useOCRHistory() {
       inputType: 'text',
       inputText,
       analysisResult: {
-        text: analysisResult.text,
-        questionType: analysisResult.type,
+        text: analysisResult.body,
+        questionType: analysisResult.questionType,
         subject: analysisResult.subject,
-        hasOptions: analysisResult.options.length > 0,
-        options: analysisResult.options,
+        hasOptions: analysisResult.options ? analysisResult.options.length > 0 : false,
+        options: analysisResult.options ? analysisResult.options.map(opt => `${opt.key}. ${opt.value}`) : [],
         processingTime: Date.now() // Simple timestamp for now
       }
     };
@@ -44,11 +43,11 @@ export function useOCRHistory() {
       inputText: ocrResult.text,
       ocrResult,
       analysisResult: analysisResult ? {
-        text: analysisResult.text,
-        questionType: analysisResult.type,
+        text: analysisResult.body,
+        questionType: analysisResult.questionType,
         subject: analysisResult.subject,
-        hasOptions: analysisResult.options.length > 0,
-        options: analysisResult.options,
+        hasOptions: analysisResult.options ? analysisResult.options.length > 0 : false,
+        options: analysisResult.options ? analysisResult.options.map(opt => `${opt.key}. ${opt.value}`) : [],
         processingTime: Date.now()
       } : undefined
     };
@@ -63,11 +62,11 @@ export function useOCRHistory() {
         return {
           ...item,
           analysisResult: {
-            text: analysisResult.text,
-            questionType: analysisResult.type,
+            text: analysisResult.body,
+            questionType: analysisResult.questionType,
             subject: analysisResult.subject,
-            hasOptions: analysisResult.options.length > 0,
-            options: analysisResult.options,
+            hasOptions: analysisResult.options ? analysisResult.options.length > 0 : false,
+            options: analysisResult.options ? analysisResult.options.map(opt => `${opt.key}. ${opt.value}`) : [],
             processingTime: Date.now()
           }
         } as ImageHistoryItem;
