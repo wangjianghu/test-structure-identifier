@@ -34,9 +34,9 @@ export function OCRHistory({
       // 导出本地数据
       onExport();
 
-      // 同步数据到 Supabase
+      // 同步数据到 Supabase - 修复 UUID 问题
       const exportData = history.map(item => ({
-        id: item.id,
+        // 移除 id 字段，让 Supabase 自动生成 UUID
         timestamp: item.timestamp.toISOString(),
         input_time: item.inputTime.toISOString(),
         output_time: item.outputTime?.toISOString(),
@@ -50,11 +50,11 @@ export function OCRHistory({
         file_size: item.inputType === 'image' ? item.originalImage.size : null,
         file_type: item.inputType === 'image' ? item.originalImage.type : null
       }));
-      const {
-        error
-      } = await supabase.from('analysis_history').upsert(exportData, {
-        onConflict: 'id'
-      });
+
+      const { error } = await supabase
+        .from('analysis_history')
+        .insert(exportData);
+
       if (error) {
         console.error('同步到 Supabase 失败:', error);
         toast.error("同步到云端失败", {

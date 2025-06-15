@@ -124,7 +124,7 @@ export function useOCRHistory() {
       displayId: generateDisplayId(),
       timestamp: inputTime,
       inputTime,
-      outputTime: analysisResult ? new Date() : undefined,
+      outputTime: analysisResult ? new Date() : undefined, // 修复：当有分析结果时设置完成时间
       inputType: 'image',
       selectedSubject,
       questionTypeExample,
