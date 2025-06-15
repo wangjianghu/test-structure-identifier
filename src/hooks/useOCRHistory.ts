@@ -102,6 +102,8 @@ export function useOCRHistory() {
           ...baseData,
           fileName: item.originalImage.name,
           fileSize: item.originalImage.size,
+          fileType: item.originalImage.type,
+          imageDataUrl: item.imageDataUrl, // 包含完整的图片 base64 数据
           inputText: item.inputText,
           ocrResult: {
             text: item.ocrResult.text,
@@ -110,6 +112,8 @@ export function useOCRHistory() {
             questionType: item.ocrResult.classification.questionType,
             subject: item.ocrResult.classification.subject,
             classificationConfidence: item.ocrResult.classification.confidence,
+            features: item.ocrResult.classification.features,
+            preprocessingSteps: item.ocrResult.preprocessingSteps,
             processingTime: item.ocrResult.processingTime
           },
           analysisResult: item.analysisResult

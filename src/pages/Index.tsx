@@ -137,8 +137,8 @@ const Index = () => {
   }, [processImageFile]);
 
   return (
-    <div className="min-h-screen w-full bg-background bg-grid text-foreground flex flex-col items-center p-4 sm:p-8">
-      <header className="w-full max-w-6xl flex justify-between items-center mb-8">
+    <div className="h-screen w-full bg-background bg-grid text-foreground flex flex-col">
+      <header className="w-full flex justify-between items-center p-4 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
         <h1 className="text-xl font-bold text-primary">题型分析器</h1>
         <a 
           href="https://github.com/lovable-dev/c5fe2474-d81b-4c79-850f-89431dfc1704" 
@@ -150,20 +150,20 @@ const Index = () => {
         </a>
       </header>
 
-      <main className="w-full max-w-6xl flex-grow">
-        <div className="text-center mb-8">
-          <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-500 py-2">
-            智能试题结构识别
-          </h2>
-          <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            粘贴试题文本或上传图片，即刻获得结构化分析。目前支持数学等学科的基础选择题与主观题识别。
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <main className="flex-1 overflow-hidden">
+        <div className="h-full flex flex-col lg:flex-row">
           {/* 左侧：输入和分析区域 */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="max-w-2xl">
+          <div className="flex-1 flex flex-col p-4 overflow-y-auto">
+            <div className="text-center mb-6">
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-500 py-2">
+                智能试题结构识别
+              </h2>
+              <p className="mt-3 text-base text-muted-foreground max-w-2xl mx-auto">
+                粘贴试题文本或上传图片，即刻获得结构化分析。目前支持数学等学科的基础选择题与主观题识别。
+              </p>
+            </div>
+
+            <div className="flex-1 space-y-4 max-w-4xl mx-auto w-full">
               <QuestionInput
                 value={inputText}
                 onChange={handleTextChange}
@@ -176,7 +176,7 @@ const Index = () => {
               
               {/* OCR 处理详情显示 */}
               {ocrResult && (
-                <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border">
+                <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border">
                   <h3 className="font-semibold mb-2 text-sm">当前 OCR 处理详情</h3>
                   <div className="text-xs space-y-1 text-muted-foreground">
                     <div>OCR 置信度: {ocrResult.confidence.toFixed(1)}%</div>
@@ -195,18 +195,18 @@ const Index = () => {
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* 分析结果显示 */}
-            {analysisResult && (
-              <div className="w-full">
-                <AnalysisResult result={analysisResult} />
-              </div>
-            )}
+              {/* 分析结果显示 */}
+              {analysisResult && (
+                <div className="w-full">
+                  <AnalysisResult result={analysisResult} />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* 右侧：分析历史记录 */}
-          <div className="lg:col-span-1">
+          <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l bg-background/50">
             <OCRHistory
               history={history}
               onRemoveItem={removeItem}
@@ -216,11 +216,6 @@ const Index = () => {
           </div>
         </div>
       </main>
-      
-      <footer className="w-full max-w-6xl mt-16 text-center text-sm text-muted-foreground py-4">
-        <p>由 Lovable AI 强力驱动。</p>
-        <p className="text-xs mt-1">注意：分析结果由基本算法生成，可能存在误差，仅供参考。</p>
-      </footer>
     </div>
   );
 };
