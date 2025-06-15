@@ -63,9 +63,27 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
     }
   };
 
+  const copyParentBlock = () => {
+    if (result.parentQuestion) {
+      const parentText = `父题题号: ${result.parentQuestion.number || ''}\n父题题干: ${result.parentQuestion.body}`;
+      copyToClipboard(parentText, "父题内容块");
+    }
+  };
+
   const copySubQuestionInfo = (subQ: any) => {
     const subText = `子题题号: (${subQ.number})\n子题题干: ${subQ.body}`;
     copyToClipboard(subText, "子题信息");
+  };
+
+  const copySubQuestionBlock = (subQ: any) => {
+    let subText = `子题题号: (${subQ.number})\n子题题干: ${subQ.body}`;
+    if (subQ.options && subQ.options.length > 0) {
+      subText += '\n选项:\n';
+      subQ.options.forEach((option: any) => {
+        subText += `${option.key}. ${option.value}\n`;
+      });
+    }
+    copyToClipboard(subText, "子题内容块");
   };
 
   const copyAllOptions = (options: any[]) => {
@@ -76,6 +94,17 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
   const copyQuestionInfo = () => {
     const questionText = `${result.questionNumber ? `题号: ${result.questionNumber}\n` : ''}题干: ${result.body}`;
     copyToClipboard(questionText, "题目信息");
+  };
+
+  const copyQuestionBlock = () => {
+    let questionText = `${result.questionNumber ? `题号: ${result.questionNumber}\n` : ''}题干: ${result.body}`;
+    if (result.options && result.options.length > 0) {
+      questionText += '\n选项:\n';
+      result.options.forEach(option => {
+        questionText += `${option.key}. ${option.value}\n`;
+      });
+    }
+    copyToClipboard(questionText, "题目内容块");
   };
 
   return (
@@ -126,15 +155,26 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <h4 className="font-medium text-sm text-muted-foreground">父题信息</h4>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={copyParentInfo}
-                  className="flex items-center gap-1 text-xs h-7"
-                >
-                  <Copy className="h-3 w-3" />
-                  复制父题信息
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={copyParentBlock}
+                    className="flex items-center gap-1 text-xs h-7"
+                  >
+                    <Copy className="h-3 w-3" />
+                    复制内容块
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={copyParentInfo}
+                    className="flex items-center gap-1 text-xs h-7"
+                  >
+                    <Copy className="h-3 w-3" />
+                    复制父题信息
+                  </Button>
+                </div>
               </div>
               
               <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -163,15 +203,26 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
                   <div key={index} className="border rounded-lg p-3 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">子题 {index + 1}</span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => copySubQuestionInfo(subQ)}
-                        className="flex items-center gap-1 text-xs h-7"
-                      >
-                        <Copy className="h-3 w-3" />
-                        复制子题信息
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copySubQuestionBlock(subQ)}
+                          className="flex items-center gap-1 text-xs h-7"
+                        >
+                          <Copy className="h-3 w-3" />
+                          复制内容块
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copySubQuestionInfo(subQ)}
+                          className="flex items-center gap-1 text-xs h-7"
+                        >
+                          <Copy className="h-3 w-3" />
+                          复制子题信息
+                        </Button>
+                      </div>
                     </div>
                     
                     <div className="space-y-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
@@ -219,15 +270,26 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h4 className="font-medium text-sm text-muted-foreground">题目信息</h4>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={copyQuestionInfo}
-                className="flex items-center gap-1 text-xs h-7"
-              >
-                <Copy className="h-3 w-3" />
-                复制题目信息
-              </Button>
+              <div className="flex gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={copyQuestionBlock}
+                  className="flex items-center gap-1 text-xs h-7"
+                >
+                  <Copy className="h-3 w-3" />
+                  复制内容块
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={copyQuestionInfo}
+                  className="flex items-center gap-1 text-xs h-7"
+                >
+                  <Copy className="h-3 w-3" />
+                  复制题目信息
+                </Button>
+              </div>
             </div>
             
             <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">

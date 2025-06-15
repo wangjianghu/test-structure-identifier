@@ -73,6 +73,26 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
     }
   };
 
+  const getStructuralOverview = (analysisResult: any) => {
+    if (!analysisResult) return '';
+    
+    // 根据题型返回结构概况
+    if (analysisResult.questionType === '选择题' && analysisResult.hasOptions) {
+      return `${analysisResult.options.length}个选项`;
+    } else if (analysisResult.questionType === '填空题') {
+      // 假设通过题干中的空格数量判断
+      const blanks = (analysisResult.text.match(/____+/g) || []).length;
+      return blanks > 0 ? `${blanks}个空` : '填空题';
+    } else if (analysisResult.questionType === '复合题') {
+      // 假设有子题信息
+      return '复合题结构';
+    } else if (analysisResult.questionType === '解答题' || analysisResult.questionType === '计算题') {
+      return '主观题';
+    }
+    
+    return analysisResult.questionType;
+  };
+
   if (history.length === 0) {
     return (
       <div className="h-full flex flex-col">
@@ -172,25 +192,6 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                       )}
                     </div>
 
-                    {/* 根据输入类型显示不同的统计信息 */}
-                    {item.inputType === 'image' ? (
-                      <div className="flex gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
-                        <span>OCR: {item.ocrResult.confidence.toFixed(1)}%</span>
-                        <span>分类: {(item.ocrResult.classification.confidence * 100).toFixed(1)}%</span>
-                        <span>学科: {item.ocrResult.classification.subject}</span>
-                        <span className="font-medium truncate max-w-32">
-                          {item.originalImage.name}
-                        </span>
-                      </div>
-                    ) : (
-                      item.analysisResult && (
-                        <div className="flex gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
-                          <span>学科: {item.analysisResult.subject}</span>
-                          <span>题型: {item.analysisResult.questionType}</span>
-                        </div>
-                      )
-                    )}
-
                     {item.questionTypeExample && (
                       <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded text-xs">
                         <span className="font-medium">题型示例:</span> {item.questionTypeExample}
@@ -208,7 +209,7 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                   </Button>
                 </div>
                 
-                {/* 图片输入时：先显示图片缩略图 */}
+                {/* 图片输入时：独立一行显示正方形缩略图 */}
                 {item.inputType === 'image' && (
                   <div className="flex justify-center">
                     <ImageViewDialog 
@@ -218,7 +219,7 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                       <img 
                         src={item.imageDataUrl} 
                         alt="分析图片" 
-                        className="w-16 h-16 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                        className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
                         title="点击查看大图"
                       />
                     </ImageViewDialog>
@@ -245,16 +246,14 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                   </div>
                 )}
                 
-                {/* 图片输入时：显示分析结果 */}
-                {item.inputType === 'image' && item.analysisResult && (
+                {/* 显示分析结果（图片和文本输入都显示） */}
+                {item.analysisResult && (
                   <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-3">
                     <p className="text-sm font-medium mb-1">分析结果:</p>
                     <div className="text-sm text-muted-foreground space-y-1">
-                      <div>题型: {item.analysisResult.questionType}</div>
                       <div>学科: {item.analysisResult.subject}</div>
-                      {item.analysisResult.hasOptions && (
-                        <div>选项数量: {item.analysisResult.options.length}</div>
-                      )}
+                      <div>题型: {item.analysisResult.questionType}</div>
+                      <div>结构概况: {getStructuralOverview(item.analysisResult)}</div>
                     </div>
                   </div>
                 )}
