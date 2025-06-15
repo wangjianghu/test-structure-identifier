@@ -303,7 +303,7 @@ const Index = () => {
   return (
     <div className="h-screen w-full bg-background text-foreground flex flex-col">
       <header className="w-full flex justify-between items-center p-6 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-        <h1 className="text-xl lg:text-2xl font-bold text-primary">智能试题结构识别</h1>
+        <h1 className="text-xl lg:text-2xl font-bold text-primary">智能识别试题结构</h1>
         <div className="flex items-center gap-4">
           {/* 历史记录面板切换按钮 */}
           <Button
@@ -315,7 +315,7 @@ const Index = () => {
             {isHistoryOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
           </Button>
           <a 
-            href="https://github.com/lovable-dev/c5fe2474-d81b-4c79-850f-89431dfc1704" 
+            href="https://github.com/wangjianghu/Test-Structure-Identifier" 
             target="_blank" 
             rel="noopener noreferrer" 
             className="text-muted-foreground hover:text-foreground transition-colors"

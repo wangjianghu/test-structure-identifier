@@ -101,7 +101,7 @@ export function SubjectAndTypeSelector({
   return (
     <Card className="mb-6">
       <CardContent className="p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 items-start">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-5 items-start">
           <SubjectSelector
             selectedSubject={selectedSubject}
             onSubjectChange={onSubjectChange}
@@ -113,15 +113,17 @@ export function SubjectAndTypeSelector({
             onQuestionTypeChange={handleQuestionTypeChange}
           />
           
-          <StructureExampleInput
-            selectedSubject={selectedSubject}
-            selectedQuestionType={selectedQuestionType}
-            questionTypeExample={questionTypeExample}
-            onQuestionTypeExampleChange={onQuestionTypeExampleChange}
-            onSave={saveToDatabase}
-          />
+          <div className="xl:col-span-1">
+            <StructureExampleInput
+              selectedSubject={selectedSubject}
+              selectedQuestionType={selectedQuestionType}
+              questionTypeExample={questionTypeExample}
+              onQuestionTypeExampleChange={onQuestionTypeExampleChange}
+              onSave={saveToDatabase}
+            />
+          </div>
           
-          <div className="flex justify-start lg:justify-end">
+          <div className="flex justify-start xl:justify-end">
             <MistralConfig />
           </div>
         </div>
