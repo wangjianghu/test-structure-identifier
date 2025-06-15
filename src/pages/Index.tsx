@@ -7,11 +7,9 @@ import { AnalysisResult } from "@/components/AnalysisResult";
 import { toast } from "sonner";
 import { QuestionInput } from "@/components/QuestionInput";
 import { EnhancedOCR, OCRResult } from "@/lib/enhancedOCR";
-import { MathpixOCR } from "@/lib/mathpixOCR";
 import { OCRHistory } from "@/components/OCRHistory";
 import { useOCRHistory } from "@/hooks/useOCRHistory";
 import { SubjectAndTypeSelector } from "@/components/SubjectAndTypeSelector";
-import { MathpixConfig } from "@/components/MathpixConfig";
 
 const exampleText = "4.已知集合M={-2,-1,0,1,2},N={x|x²-x-2≤0},则M∩(CRN)=(  )\nA.{-2,-1}\nB.{-2}\nC.{-1,0}\nD.{0}";
 
@@ -27,9 +25,6 @@ const Index = () => {
   const [selectedSubject, setSelectedSubject] = useState("");
   const [questionTypeExample, setQuestionTypeExample] = useState("");
   
-  // Mathpix 配置状态
-  const [isMathpixConfigured, setIsMathpixConfigured] = useState(false);
-  
   const { 
     history, 
     questionTypeExamples,
@@ -40,15 +35,6 @@ const Index = () => {
     removeItem, 
     exportHistory 
   } = useOCRHistory();
-
-  // 检查 Mathpix 配置状态
-  useEffect(() => {
-    setIsMathpixConfigured(MathpixOCR.isConfigured());
-  }, []);
-
-  const handleMathpixConfigUpdate = (appId: string, appKey: string) => {
-    setIsMathpixConfigured(!!(appId && appKey));
-  };
 
   const handleAnalyze = async () => {
     setIsLoading(true);
@@ -67,82 +53,34 @@ const Index = () => {
         
         const results: OCRResult[] = [];
         
-        // 选择 OCR 引擎
-        if (isMathpixConfigured) {
-          const mathpixConfig = MathpixOCR.getConfig();
-          if (mathpixConfig) {
-            toast.info("使用 Mathpix 进行高精度识别...", {
-              description: "数学公式和科学符号将获得更好的识别效果"
-            });
-            
-            const mathpixOCR = new MathpixOCR(mathpixConfig);
-            
-            for (let i = 0; i < uploadedImages.length; i++) {
-              const file = uploadedImages[i];
-              toast.info(`正在处理第 ${i + 1} 张图片...`, {
-                description: `文件：${file.name}`,
-              });
-              
-              try {
-                const result = await mathpixOCR.processImage(file);
-                results.push(result);
-                
-                const historyItem = await addImageToHistory(file, result, undefined, selectedSubject, questionTypeExample);
-                imageHistoryItems.push(historyItem);
-              } catch (err) {
-                console.error(`Mathpix 处理图片 ${file.name} 失败:`, err);
-                toast.error(`Mathpix 处理图片 ${file.name} 失败`, {
-                  description: "将使用备用 OCR 引擎处理此图片。",
-                });
-                
-                // 如果 Mathpix 失败，使用备用 OCR
-                const enhancedOCR = new EnhancedOCR();
-                try {
-                  const result = await enhancedOCR.processImage(file);
-                  results.push(result);
-                  
-                  const historyItem = await addImageToHistory(file, result, undefined, selectedSubject, questionTypeExample);
-                  imageHistoryItems.push(historyItem);
-                } catch (backupErr) {
-                  console.error(`备用 OCR 处理图片 ${file.name} 也失败:`, backupErr);
-                  toast.error(`处理图片 ${file.name} 完全失败`, {
-                    description: "请检查图片质量或网络连接。",
-                  });
-                }
-                enhancedOCR.destroy();
-              }
-            }
-          }
-        } else {
-          // 使用默认的增强 OCR
-          toast.info("使用内置 OCR 引擎识别...", {
-            description: "建议配置 Mathpix 以获得更好的数学公式识别效果"
+        // 使用增强 OCR
+        toast.info("使用内置 OCR 引擎识别...", {
+          description: "正在处理图片中的文字和数学公式"
+        });
+        
+        const enhancedOCR = new EnhancedOCR();
+        
+        for (let i = 0; i < uploadedImages.length; i++) {
+          const file = uploadedImages[i];
+          toast.info(`正在处理第 ${i + 1} 张图片...`, {
+            description: `文件：${file.name}`,
           });
           
-          const enhancedOCR = new EnhancedOCR();
-          
-          for (let i = 0; i < uploadedImages.length; i++) {
-            const file = uploadedImages[i];
-            toast.info(`正在处理第 ${i + 1} 张图片...`, {
-              description: `文件：${file.name}`,
-            });
+          try {
+            const result = await enhancedOCR.processImage(file);
+            results.push(result);
             
-            try {
-              const result = await enhancedOCR.processImage(file);
-              results.push(result);
-              
-              const historyItem = await addImageToHistory(file, result, undefined, selectedSubject, questionTypeExample);
-              imageHistoryItems.push(historyItem);
-            } catch (err) {
-              console.error(`处理图片 ${file.name} 失败:`, err);
-              toast.error(`处理图片 ${file.name} 失败`, {
-                description: "请检查图片质量或稍后重试。",
-              });
-            }
+            const historyItem = await addImageToHistory(file, result, undefined, selectedSubject, questionTypeExample);
+            imageHistoryItems.push(historyItem);
+          } catch (err) {
+            console.error(`处理图片 ${file.name} 失败:`, err);
+            toast.error(`处理图片 ${file.name} 失败`, {
+              description: "请检查图片质量或稍后重试。",
+            });
           }
-          
-          enhancedOCR.destroy();
         }
+        
+        enhancedOCR.destroy();
         
         setOcrResults(results);
         
@@ -158,7 +96,7 @@ const Index = () => {
         if (results.length > 0) {
           const avgConfidence = results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
           toast.success(`成功识别 ${results.length} 张图片`, {
-            description: `平均置信度: ${avgConfidence.toFixed(1)}%${isMathpixConfigured ? ' (Mathpix)' : ' (内置OCR)'}`,
+            description: `平均置信度: ${avgConfidence.toFixed(1)}% (内置OCR)`,
           });
         }
       }
@@ -273,12 +211,6 @@ const Index = () => {
             </div>
 
             <div className="flex-1 space-y-4 max-w-4xl mx-auto w-full">
-              {/* Mathpix 配置 */}
-              <MathpixConfig
-                isConfigured={isMathpixConfigured}
-                onConfigUpdate={handleMathpixConfigUpdate}
-              />
-
               {/* 学科选择和题型示例输入 */}
               <SubjectAndTypeSelector
                 selectedSubject={selectedSubject}
@@ -307,7 +239,7 @@ const Index = () => {
                   <div className="space-y-3">
                     {ocrResults.map((result, index) => (
                       <div key={index} className="text-xs space-y-1 text-muted-foreground border-l-2 border-blue-200 pl-3">
-                        <div className="font-medium">图片 {index + 1} {isMathpixConfigured ? '(Mathpix)' : '(内置OCR)'}:</div>
+                        <div className="font-medium">图片 {index + 1} (内置OCR):</div>
                         <div>OCR 置信度: {result.confidence.toFixed(1)}%</div>
                         <div>处理时间: {result.processingTime}ms</div>
                         <div>检测学科: {result.classification.subject}</div>
