@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SubjectAndTypeSelectorProps {
   selectedSubject: string;
@@ -37,45 +38,82 @@ export function SubjectAndTypeSelector({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [tempExample, setTempExample] = useState(questionTypeExample);
 
-  const sendToEmail = async (content: string) => {
+  const saveToDatabase = async (content: string, subject: string, questionType: string) => {
     try {
-      // 创建邮件链接，用户可以直接点击发送
-      const subject = encodeURIComponent("题型结构示例提交");
-      const body = encodeURIComponent(`题型结构示例：\n\n${content}\n\n提交时间：${new Date().toLocaleString()}`);
-      const mailtoLink = `mailto:dijiuxiaoshi@foxmail.com?subject=${subject}&body=${body}`;
+      console.log('保存题型示例到数据库:', { content, subject, questionType });
       
-      // 尝试打开邮件客户端
-      window.location.href = mailtoLink;
-      
-      console.log('题型示例已准备发送到邮箱:', content);
-      
-      toast.success("题型示例已记录", {
-        description: "邮件客户端已打开，请确认发送题型结构示例"
-      });
-    } catch (error) {
-      console.error('打开邮件客户端失败:', error);
-      
-      // 如果无法打开邮件客户端，提供复制功能
-      try {
-        await navigator.clipboard.writeText(`题型结构示例：\n\n${content}\n\n请发送至：dijiuxiaoshi@foxmail.com`);
-        toast.success("内容已复制到剪贴板", {
-          description: "请手动发送至 dijiuxiaoshi@foxmail.com"
+      // 首先检查是否已存在相同的示例
+      const { data: existingData, error: checkError } = await supabase
+        .from('question_type_examples')
+        .select('*')
+        .eq('subject', subject)
+        .eq('question_type', questionType)
+        .eq('structure_example', content)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 表示没有找到记录
+        console.error('检查现有记录时出错:', checkError);
+        throw checkError;
+      }
+
+      if (existingData) {
+        // 如果记录已存在，更新使用次数和最后使用时间
+        const { error: updateError } = await supabase
+          .from('question_type_examples')
+          .update({
+            usage_count: existingData.usage_count + 1,
+            last_used_at: new Date().toISOString()
+          })
+          .eq('id', existingData.id);
+
+        if (updateError) {
+          console.error('更新使用次数时出错:', updateError);
+          throw updateError;
+        }
+
+        console.log('已更新现有记录的使用次数');
+        toast.success("题型示例已更新", {
+          description: "使用次数已增加，数据已保存到云端"
         });
-      } catch (clipboardError) {
-        toast.error("保存失败", {
-          description: "无法自动发送邮件，请手动将内容发送至 dijiuxiaoshi@foxmail.com"
+      } else {
+        // 如果记录不存在，创建新记录
+        const { error: insertError } = await supabase
+          .from('question_type_examples')
+          .insert({
+            subject,
+            question_type: questionType,
+            structure_example: content,
+            usage_count: 1,
+            last_used_at: new Date().toISOString()
+          });
+
+        if (insertError) {
+          console.error('插入新记录时出错:', insertError);
+          throw insertError;
+        }
+
+        console.log('已保存新的题型示例');
+        toast.success("题型示例已保存", {
+          description: "新的题型结构示例已保存到云端数据库"
         });
       }
+    } catch (error) {
+      console.error('保存题型示例失败:', error);
+      toast.error("保存失败", {
+        description: "无法保存题型示例到数据库，请稍后重试"
+      });
     }
   };
 
-  const handleDialogClose = () => {
+  const handleDialogClose = async () => {
     setIsDialogOpen(false);
     onQuestionTypeExampleChange(tempExample);
     
-    // 如果有内容变化，发送到邮箱
-    if (tempExample && tempExample !== questionTypeExample) {
-      sendToEmail(tempExample);
+    // 如果有内容变化且选择了学科，保存到数据库
+    if (tempExample && tempExample !== questionTypeExample && selectedSubject) {
+      // 假设题型从分析结果中获取，这里先用默认值
+      const questionType = "通用题型";
+      await saveToDatabase(tempExample, selectedSubject, questionType);
     }
   };
 
@@ -105,7 +143,7 @@ export function SubjectAndTypeSelector({
             </Select>
           </div>
           
-          {/* 题型示例行 - 修复溢出问题 */}
+          {/* 题型示例行 */}
           <div className="flex items-center gap-3">
             <Label htmlFor="question-type-example" className="text-sm whitespace-nowrap">题型示例：</Label>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -153,7 +191,7 @@ export function SubjectAndTypeSelector({
         
         {(selectedSubject || questionTypeExample) && (
           <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-sm text-blue-700 dark:text-blue-300">
-            <p>✨ 已设置识别优化参数，将提高OCR和分析准确性</p>
+            <p>✨ 已设置识别优化参数，数据将自动保存到云端数据库</p>
           </div>
         )}
       </CardContent>

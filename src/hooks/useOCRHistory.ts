@@ -1,12 +1,64 @@
-
 import { useState, useCallback } from 'react';
 import { HistoryItem, TextHistoryItem, ImageHistoryItem, QuestionTypeExample } from '@/types/ocrHistory';
 import { OCRResult } from '@/lib/enhancedOCR';
 import { ParsedQuestion } from '@/lib/parser';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useOCRHistory() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [questionTypeExamples, setQuestionTypeExamples] = useState<QuestionTypeExample[]>([]);
+
+  const saveToSupabase = async (subject: string, questionType: string, structureExample: string) => {
+    try {
+      console.log('保存到 Supabase:', { subject, questionType, structureExample });
+      
+      // 检查是否已存在相同的示例
+      const { data: existingData, error: checkError } = await supabase
+        .from('question_type_examples')
+        .select('*')
+        .eq('subject', subject)
+        .eq('question_type', questionType)
+        .eq('structure_example', structureExample)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('检查现有记录时出错:', checkError);
+        return;
+      }
+
+      if (existingData) {
+        // 更新使用次数
+        const { error: updateError } = await supabase
+          .from('question_type_examples')
+          .update({
+            usage_count: existingData.usage_count + 1,
+            last_used_at: new Date().toISOString()
+          })
+          .eq('id', existingData.id);
+
+        if (updateError) {
+          console.error('更新使用次数时出错:', updateError);
+        }
+      } else {
+        // 创建新记录
+        const { error: insertError } = await supabase
+          .from('question_type_examples')
+          .insert({
+            subject,
+            question_type: questionType,
+            structure_example: structureExample,
+            usage_count: 1,
+            last_used_at: new Date().toISOString()
+          });
+
+        if (insertError) {
+          console.error('插入新记录时出错:', insertError);
+        }
+      }
+    } catch (error) {
+      console.error('保存到 Supabase 失败:', error);
+    }
+  };
 
   const addTextToHistory = useCallback((
     inputText: string, 
@@ -34,9 +86,10 @@ export function useOCRHistory() {
       }
     };
 
-    // 收集题型结构示例
+    // 收集题型结构示例并保存到 Supabase
     if (selectedSubject && questionTypeExample && questionTypeExample.trim()) {
       collectQuestionTypeExample(selectedSubject, analysisResult.questionType, questionTypeExample);
+      saveToSupabase(selectedSubject, analysisResult.questionType, questionTypeExample);
     }
 
     setHistory(prev => [historyItem, ...prev]);
@@ -81,9 +134,10 @@ export function useOCRHistory() {
       } : undefined
     };
 
-    // 收集题型结构示例
+    // 收集题型结构示例并保存到 Supabase
     if (selectedSubject && questionTypeExample && questionTypeExample.trim() && analysisResult) {
       collectQuestionTypeExample(selectedSubject, analysisResult.questionType, questionTypeExample);
+      saveToSupabase(selectedSubject, analysisResult.questionType, questionTypeExample);
     }
 
     setHistory(prev => [historyItem, ...prev]);
@@ -106,9 +160,10 @@ export function useOCRHistory() {
           }
         } as ImageHistoryItem;
 
-        // 收集题型结构示例
+        // 收集题型结构示例并保存到 Supabase
         if (item.selectedSubject && item.questionTypeExample && item.questionTypeExample.trim()) {
           collectQuestionTypeExample(item.selectedSubject, analysisResult.questionType, item.questionTypeExample);
+          saveToSupabase(item.selectedSubject, analysisResult.questionType, item.questionTypeExample);
         }
 
         return updatedItem;
