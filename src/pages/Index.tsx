@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Github, Zap } from "lucide-react";
@@ -33,9 +34,30 @@ const Index = () => {
       description: "这可能需要一些时间，请稍候。",
     });
     try {
-      const worker = await createWorker('chi_sim');
+      const worker = await createWorker('chi_sim', 1, {
+        logger: m => console.log(m)
+      });
+      
+      // 优化OCR设置
+      await worker.setParameters({
+        tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+-=(){}[].,;:!?/\\|~`@#$%^&*_<>""''中文汉字一二三四五六七八九十百千万亿零壹贰叁肆伍陆柒捌玖拾佰仟萬億',
+        tessedit_pageseg_mode: '6'
+      });
+      
       const { data: { text } } = await worker.recognize(file);
-      setInputText(text);
+      
+      // 后处理OCR结果，修复常见识别错误
+      let processedText = text
+        .replace(/也\./g, 'B.')  // 修复 "也." -> "B."
+        .replace(/B\s*\.\s*了/g, 'B. 1/2')  // 修复 "B. 了" -> "B. 1/2"  
+        .replace(/(\d+)\s*\.\s*(\d+)/g, '$1.$2')  // 修复数字间距
+        .replace(/\s+/g, ' ')  // 标准化空格
+        .trim();
+      
+      console.log('Original OCR result:', text);
+      console.log('Processed OCR result:', processedText);
+      
+      setInputText(processedText);
       toast.success("图片识别成功！");
       await worker.terminate();
     } catch (err) {
