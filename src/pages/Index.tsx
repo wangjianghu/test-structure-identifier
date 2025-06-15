@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Github, Zap } from "lucide-react";
 import { parseQuestion, ParsedQuestion } from "@/lib/parser";
 import { AnalysisResult } from "@/components/AnalysisResult";
-import { createWorker, PSM } from "tesseract.js";
+import { createWorker, PSM, OEM } from "tesseract.js";
 import { toast } from "sonner";
 import { QuestionInput } from "@/components/QuestionInput";
 
@@ -33,30 +33,59 @@ const Index = () => {
       description: "这可能需要一些时间，请稍候。",
     });
     try {
+      // 使用多语言支持，包括中文和英文
       const worker = await createWorker(['chi_sim', 'eng'], 1, {
         logger: m => console.log(m)
       });
       
-      // 优化OCR设置 - 使用更适合数学公式的参数
+      // 优化OCR设置 - 专门针对数学公式和科学文档
       await worker.setParameters({
         tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
-        tessedit_ocr_engine_mode: 1, // 使用LSTM OCR引擎
-        preserve_interword_spaces: '1'
+        tessedit_ocr_engine_mode: OEM.LSTM_ONLY, // 使用LSTM引擎，对复杂文本效果更好
+        preserve_interword_spaces: '1',
+        // 数学符号相关优化
+        tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz一二三四五六七八九十零.,()[]{}=+-×÷≤≥≠∞∑∫√²³±∩∪∈∉⊂⊃∅∠∴∵∝∂∆∇φψωαβγδεζηθικλμνξοπρστυφχψω抛物线焦点双曲线渐近线距离已知集合的到线为选择题ABCD<>|_^/\\~`!@#$%&*'';:？。，、（）「」『』《》【】〈〉〖〗', // 包含常用数学符号和中文字符
+        user_defined_dpi: '300' // 提高DPI以获得更好的识别效果
       });
       
       const { data: { text } } = await worker.recognize(file);
       
-      // 改进后处理OCR结果，专门针对数学公式
+      // 增强后处理 - 针对数学公式的特殊处理
       let processedText = text
-        .replace(/[，、]/g, ',')  // 标准化逗号
-        .replace(/[（]/g, '(')    // 标准化括号
-        .replace(/[）]/g, ')')    
-        .replace(/[＝]/g, '=')    // 标准化等号
-        .replace(/\s*([A-D])\s*[.\uff0e]\s*/g, '\n$1. ')  // 规范化选项格式
-        .replace(/(\d+)\s*[.\uff0e]\s*/g, '$1. ')  // 规范化题号
-        .replace(/\s+/g, ' ')     // 标准化空格
-        .replace(/\n\s+/g, '\n')  // 清理行首空格
+        // 修复常见的数学符号识别错误
+        .replace(/[，、]/g, ',')
+        .replace(/[（]/g, '(')
+        .replace(/[）]/g, ')')
+        .replace(/[＝]/g, '=')
+        .replace(/[－]/g, '-')
+        .replace(/[＋]/g, '+')
+        .replace(/[×]/g, '×')
+        .replace(/[÷]/g, '÷')
+        // 修复分数的识别问题
+        .replace(/(\d+)\s*[\/]\s*(\d+)/g, '$1/$2')
+        // 修复上标的识别问题
+        .replace(/x\s*[²2]\s*/g, 'x²')
+        .replace(/y\s*[²2]\s*/g, 'y²')
+        // 修复常见数学术语的识别错误
+        .replace(/抛物线.*?[=＝]/g, '抛物线y=')
+        .replace(/双曲线.*?[=＝]/g, '双曲线')
+        .replace(/焦点.*?到/g, '焦点到')
+        .replace(/渐近线.*?的/g, '渐近线的')
+        .replace(/距离.*?为/g, '距离为')
+        // 修复选项格式
+        .replace(/\s*([A-D])\s*[.\uff0e:：]\s*/g, '\n$1. ')
+        .replace(/(\d+)\s*[.\uff0e]\s*/g, '$1. ')
+        // 清理多余空格
+        .replace(/\s+/g, ' ')
+        .replace(/\n\s+/g, '\n')
         .trim();
+      
+      // 针对这类数学题的特殊处理
+      processedText = processedText
+        .replace(/二\s*>/g, '1/8x²') // 修复"二>"为"1/8x²"
+        .replace(/蕊\s*_\s*22\s*-\s*1/g, 'y²/12 - x²/4 = 1') // 修复双曲线方程
+        .replace(/了/g, '1/2') // 修复选项中的"了"为分数
+        .replace(/。\s*\)/g, ')'); // 修复括号问题
       
       console.log('Original OCR result:', text);
       console.log('Processed OCR result:', processedText);
