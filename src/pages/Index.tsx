@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Github, Zap, PanelRightOpen, PanelRightClose } from "lucide-react";
@@ -52,6 +53,11 @@ const Index = () => {
     checkScreenSize();
     window.addEventListener('resize', checkScreenSize);
     return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
+  // 添加点击遮罩层关闭历史记录面板的处理
+  const handleOverlayClick = useCallback(() => {
+    setIsHistoryOpen(false);
   }, []);
 
   // 添加 fallback 方法
@@ -392,7 +398,6 @@ const Index = () => {
               w-full absolute inset-y-0 right-0 z-20 bg-background border-l 
               lg:relative lg:w-80 lg:z-auto
               transition-transform duration-300 ease-in-out
-              ${isHistoryOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
             `}>
               <div className="h-full bg-background/95 backdrop-blur-sm lg:bg-background/50">
                 <OCRHistory
@@ -409,7 +414,7 @@ const Index = () => {
           {isHistoryOpen && (
             <div 
               className="fixed inset-0 bg-black/50 z-10 lg:hidden"
-              onClick={() => setIsHistoryOpen(false)}
+              onClick={handleOverlayClick}
             />
           )}
         </div>

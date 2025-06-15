@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,13 +23,20 @@ interface MistralConfigProps {
 
 export function MistralConfig({ className }: MistralConfigProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [mistralApiKey, setMistralApiKey] = useState(() => localStorage.getItem('mistral_api_key') || '');
-  const [alicloudAccessKey, setAlicloudAccessKey] = useState(() => localStorage.getItem('alicloud_access_key') || '');
-  const [alicloudSecretKey, setAlicloudSecretKey] = useState(() => localStorage.getItem('alicloud_secret_key') || '');
+  const [mistralApiKey, setMistralApiKey] = useState('');
+  const [alicloudAccessKey, setAlicloudAccessKey] = useState('');
+  const [alicloudSecretKey, setAlicloudSecretKey] = useState('');
   const [showMistralKey, setShowMistralKey] = useState(false);
   const [showAlicloudAccess, setShowAlicloudAccess] = useState(false);
   const [showAlicloudSecret, setShowAlicloudSecret] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // 从 localStorage 加载配置
+  useEffect(() => {
+    setMistralApiKey(localStorage.getItem('mistral_api_key') || '');
+    setAlicloudAccessKey(localStorage.getItem('alicloud_access_key') || '');
+    setAlicloudSecretKey(localStorage.getItem('alicloud_secret_key') || '');
+  }, []);
 
   const handleSave = async () => {
     if (!mistralApiKey.trim() && (!alicloudAccessKey.trim() || !alicloudSecretKey.trim())) {
@@ -47,18 +54,23 @@ export function MistralConfig({ className }: MistralConfigProps) {
         return;
       }
 
-      // 保存配置
+      // 保存配置到 localStorage
       if (mistralApiKey.trim()) {
         localStorage.setItem('mistral_api_key', mistralApiKey);
+      } else {
+        localStorage.removeItem('mistral_api_key');
       }
       
       if (alicloudAccessKey.trim() && alicloudSecretKey.trim()) {
         localStorage.setItem('alicloud_access_key', alicloudAccessKey);
         localStorage.setItem('alicloud_secret_key', alicloudSecretKey);
+      } else {
+        localStorage.removeItem('alicloud_access_key');
+        localStorage.removeItem('alicloud_secret_key');
       }
 
       toast.success("OCR 增强服务配置成功！", {
-        description: "现在可以使用高精度图片识别功能了。"
+        description: "配置已保存，现在可以使用高精度图片识别功能了。"
       });
       setIsOpen(false);
     } catch (error) {

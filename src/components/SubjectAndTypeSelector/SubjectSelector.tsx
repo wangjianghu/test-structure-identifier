@@ -14,7 +14,7 @@ export function SubjectSelector({ selectedSubject, onSubjectChange }: SubjectSel
       <Label htmlFor="subject-select" className="text-sm whitespace-nowrap">选择学科：</Label>
       <Select value={selectedSubject} onValueChange={onSubjectChange}>
         <SelectTrigger id="subject-select" className="w-32">
-          <SelectValue placeholder="选择学科" className="text-muted-foreground" />
+          <SelectValue placeholder="选择学科" />
         </SelectTrigger>
         <SelectContent className="bg-white dark:bg-gray-800">
           {subjects.map((subject) => (

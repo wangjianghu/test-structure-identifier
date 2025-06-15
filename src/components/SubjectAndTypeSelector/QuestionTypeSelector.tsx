@@ -25,7 +25,7 @@ export function QuestionTypeSelector({
         disabled={!selectedSubject}
       >
         <SelectTrigger id="question-type-select" className="w-32">
-          <SelectValue placeholder="选择题型" className="text-muted-foreground" />
+          <SelectValue placeholder="选择题型" />
         </SelectTrigger>
         <SelectContent className="bg-white dark:bg-gray-800">
           {availableQuestionTypes.map((type) => (
