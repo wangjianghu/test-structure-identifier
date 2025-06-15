@@ -28,11 +28,11 @@ export class TesseractRecognizer {
     });
     results.push(result1);
 
-    // 配置2: 单行数学公式超级识别
+    // 配置2: 单行数学公式超级识别 - 修复PSM属性名
     const result2 = await this.recognizeWithConfig(imageBlob, {
       name: "单行数学公式",
       languages: ['chi_sim', 'eng'],
-      psm: PSM.SINGLE_TEXT_LINE,
+      psm: PSM.SINGLE_LINE,
       oem: OEM.LSTM_ONLY,
       dpi: '600',
       params: {
