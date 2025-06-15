@@ -124,7 +124,7 @@ export function useOCRHistory() {
       displayId: generateDisplayId(),
       timestamp: inputTime,
       inputTime,
-      outputTime: new Date(), // 修复：为图片输入设置完成时间
+      outputTime: analysisResult ? new Date() : undefined, // 只有当有分析结果时才设置完成时间
       inputType: 'image',
       selectedSubject,
       questionTypeExample,
@@ -157,7 +157,7 @@ export function useOCRHistory() {
       if (item.id === id && item.inputType === 'image') {
         const updatedItem = {
           ...item,
-          outputTime: new Date(),
+          outputTime: new Date(), // 更新完成时间
           analysisResult: {
             text: analysisResult.body,
             questionType: analysisResult.questionType,

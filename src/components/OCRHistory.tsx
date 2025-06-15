@@ -1,9 +1,8 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Download, FileText, Image, Type, ChevronLeft, ChevronRight, Clock, Target, Zap } from "lucide-react";
+import { Trash2, Download, FileText, Image, Type, ChevronLeft, ChevronRight, Clock, Target, Zap, Copy } from "lucide-react";
 import { HistoryItem } from "@/types/ocrHistory";
 import { format } from "date-fns";
 import { ImageViewDialog } from "./ImageViewDialog";
@@ -85,11 +84,25 @@ export function OCRHistory({
 
   const getClassificationConfidence = (item: HistoryItem) => {
     if (item.inputType === 'image' && item.ocrResult) {
-      return `置信度：${(item.ocrResult.classification.confidence * 100).toFixed(1)}%`;
+      return `${(item.ocrResult.classification.confidence * 100).toFixed(1)}%`;
     } else if (item.inputType === 'text') {
-      return "置信度：95.0%";
+      return "95.0%";
     }
     return "-";
+  };
+
+  const handleCopyId = async (displayId: number) => {
+    try {
+      await navigator.clipboard.writeText(displayId.toString());
+      toast.success("ID已复制到粘贴板", {
+        description: `记录ID: ${displayId}`
+      });
+    } catch (error) {
+      console.error('复制失败:', error);
+      toast.error("复制失败", {
+        description: "无法访问粘贴板，请手动复制。"
+      });
+    }
   };
 
   if (history.length === 0) {
@@ -98,7 +111,7 @@ export function OCRHistory({
         <div className="p-4 border-b">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            分析历史记录
+            历史记录
           </h2>
         </div>
         <div className="flex-1 flex items-center justify-center">
@@ -114,7 +127,7 @@ export function OCRHistory({
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            分析历史记录 ({history.length})
+            历史记录 ({history.length})
           </h2>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleExportWithSync}>
@@ -149,9 +162,16 @@ export function OCRHistory({
                         </>
                       )}
                     </Badge>
-                    <span className="text-sm font-mono text-muted-foreground">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-sm font-mono text-muted-foreground hover:text-primary p-1 h-auto"
+                      onClick={() => handleCopyId(item.displayId)}
+                      title="点击复制ID"
+                    >
                       #{item.displayId}
-                    </span>
+                      <Copy className="h-3 w-3 ml-1" />
+                    </Button>
                   </div>
                   <Button 
                     variant="ghost" 
@@ -163,30 +183,29 @@ export function OCRHistory({
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Target className="h-4 w-4 text-muted-foreground" />
-                      <span>{getClassificationConfidence(item)}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>输入：{format(item.inputTime, 'HH:mm:ss')}</span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    {item.outputTime && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span>完成：{format(item.outputTime, 'HH:mm:ss')}</span>
+                <div className="grid grid-cols-1 gap-3 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Target className="h-4 w-4 text-muted-foreground" />
+                        <span>置信度：{getClassificationConfidence(item)}</span>
                       </div>
-                    )}
-                    <div className="flex items-center gap-2 text-sm">
-                      <Zap className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">耗时:</span>
-                      <span>
-                        {formatProcessingTime(item.inputTime, item.outputTime)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>输入：{format(item.inputTime, 'HH:mm:ss')}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm">
+                      {item.outputTime && (
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span>完成：{format(item.outputTime, 'HH:mm:ss')}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <Zap className="h-4 w-4 text-muted-foreground" />
+                        <span>耗时：{formatProcessingTime(item.inputTime, item.outputTime)}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -229,6 +248,18 @@ export function OCRHistory({
                         <div><span className="font-medium">学科:</span> {item.analysisResult.subject}</div>
                         <div><span className="font-medium">题型:</span> {item.analysisResult.questionType}</div>
                         <div><span className="font-medium">结构:</span> {item.analysisResult.hasOptions ? `${item.analysisResult.options.length}个选项` : '主观题'}</div>
+                        {item.analysisResult.hasOptions && item.analysisResult.options.length > 0 && (
+                          <div>
+                            <span className="font-medium">选项:</span>
+                            <div className="mt-1 space-y-1">
+                              {item.analysisResult.options.map((option, index) => (
+                                <div key={index} className="text-xs pl-2 border-l-2 border-muted-foreground/20">
+                                  {option}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

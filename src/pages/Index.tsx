@@ -42,6 +42,7 @@ const Index = () => {
     
     try {
       let finalText = inputText;
+      let imageHistoryItems: any[] = [];
       
       // 如果有上传的图片，先进行OCR识别
       if (uploadedImages.length > 0) {
@@ -63,8 +64,9 @@ const Index = () => {
             const result = await enhancedOCR.processImage(file);
             results.push(result);
             
-            // 添加到历史记录
-            await addImageToHistory(file, result, undefined, selectedSubject, questionTypeExample);
+            // 先添加到历史记录（不包含分析结果）
+            const historyItem = await addImageToHistory(file, result, undefined, selectedSubject, questionTypeExample);
+            imageHistoryItems.push(historyItem);
           } catch (err) {
             console.error(`处理图片 ${file.name} 失败:`, err);
             toast.error(`处理图片 ${file.name} 失败`, {
@@ -100,6 +102,11 @@ const Index = () => {
         // 如果是文本输入（没有图片），添加到历史记录
         if (uploadedImages.length === 0) {
           addTextToHistory(finalText, result, selectedSubject, questionTypeExample);
+        } else {
+          // 如果是图片输入，更新历史记录中的分析结果
+          imageHistoryItems.forEach(historyItem => {
+            updateHistoryItemAnalysis(historyItem.id, result);
+          });
         }
       }
       
