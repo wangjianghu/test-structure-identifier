@@ -1,8 +1,14 @@
+
 import { useState, useCallback } from 'react';
 import { HistoryItem, TextHistoryItem, ImageHistoryItem, QuestionTypeExample } from '@/types/ocrHistory';
 import { OCRResult } from '@/lib/enhancedOCR';
 import { ParsedQuestion } from '@/lib/parser';
 import { supabase } from '@/integrations/supabase/client';
+
+// 生成8位随机正整数
+const generateDisplayId = (): number => {
+  return Math.floor(10000000 + Math.random() * 90000000);
+};
 
 export function useOCRHistory() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -69,6 +75,7 @@ export function useOCRHistory() {
     const inputTime = new Date();
     const historyItem: TextHistoryItem = {
       id: `text-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      displayId: generateDisplayId(),
       timestamp: inputTime,
       inputTime,
       outputTime: new Date(),
@@ -114,6 +121,7 @@ export function useOCRHistory() {
 
     const historyItem: ImageHistoryItem = {
       id: `image-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      displayId: generateDisplayId(),
       timestamp: inputTime,
       inputTime,
       outputTime: analysisResult ? new Date() : undefined,

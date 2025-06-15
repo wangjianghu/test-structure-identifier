@@ -1,6 +1,7 @@
 
 export interface BaseHistoryItem {
   id: string;
+  displayId: number; // 新增8位随机正整数ID用于显示
   timestamp: Date;
   inputTime: Date;
   outputTime?: Date;
