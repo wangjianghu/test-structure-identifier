@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Github, ChevronLeft, ChevronRight } from "lucide-react";
@@ -397,9 +398,9 @@ const Index = () => {
                             <div className="font-medium">图片 {index + 1} ({engineName}):</div>
                             <div>OCR 置信度: {result.confidence.toFixed(1)}%</div>
                             <div>处理时间: {result.processingTime}ms</div>
-                            <div>检测学科: {result.classification.subject}</div>
-                            <div>题型: {result.classification.questionType}</div>
-                            <div>分类置信度: {(result.classification.confidence * 100).toFixed(1)}%</div>
+                            <div>检测学科: {result.classification?.subject || 'unknown'}</div>
+                            <div>题型: {result.classification?.questionType || 'unknown'}</div>
+                            <div>分类置信度: {result.classification ? (result.classification.confidence * 100).toFixed(1) : 0}%</div>
                           </div>
                         );
                       })}
