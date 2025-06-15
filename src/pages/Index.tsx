@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Github, Zap } from "lucide-react";
+import { Github, Zap, PanelRightOpen, PanelRightClose } from "lucide-react";
 import { parseQuestion, ParsedQuestion } from "@/lib/parser";
 import { AnalysisResult } from "@/components/AnalysisResult";
 import { toast } from "sonner";
@@ -22,6 +22,7 @@ const Index = () => {
   const [isOcrLoading, setIsOcrLoading] = useState(false);
   const [ocrResults, setOcrResults] = useState<(OCRResult | MistralOCRResult | AlicloudOCRResult)[]>([]);
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(true);
   
   // 新增状态
   const [selectedSubject, setSelectedSubject] = useState("");
@@ -37,6 +38,21 @@ const Index = () => {
     removeItem, 
     exportHistory 
   } = useOCRHistory();
+
+  // 响应式检测：小屏幕时默认关闭历史记录面板
+  useEffect(() => {
+    const checkScreenSize = () => {
+      if (window.innerWidth < 1024) { // lg breakpoint
+        setIsHistoryOpen(false);
+      } else {
+        setIsHistoryOpen(true);
+      }
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   // 添加 fallback 方法
   const fallbackToBuiltinOCR = async (file: File, results: any[], imageHistoryItems: any[]) => {
@@ -213,20 +229,17 @@ const Index = () => {
     }
   };
 
-  // 处理多图片上传
   const handleImagesUpload = useCallback((newImages: File[]) => {
     setUploadedImages(newImages);
     setAnalysisResult(null);
     setOcrResults([]);
   }, []);
 
-  // 删除图片
   const handleRemoveImage = useCallback((index: number) => {
     setUploadedImages(prev => prev.filter((_, i) => i !== index));
     setOcrResults(prev => prev.filter((_, i) => i !== index));
   }, []);
 
-  // 清空输入框内容（文本和图片）
   const handleClear = useCallback(() => {
     setInputText("");
     setUploadedImages([]);
@@ -235,12 +248,10 @@ const Index = () => {
     toast.success("已清空输入内容");
   }, []);
 
-  // 处理文本变化
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputText(e.target.value);
   };
 
-  // 处理粘贴图片
   useEffect(() => {
     const handlePaste = (event: ClipboardEvent) => {
       const items = event.clipboardData?.items;
@@ -271,22 +282,33 @@ const Index = () => {
   return (
     <div className="h-screen w-full bg-background text-foreground flex flex-col">
       <header className="w-full flex justify-between items-center p-6 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-        <h1 className="text-2xl font-bold text-primary">智能试题结构识别</h1>
-        <a 
-          href="https://github.com/lovable-dev/c5fe2474-d81b-4c79-850f-89431dfc1704" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Github className="h-6 w-6" />
-        </a>
+        <h1 className="text-xl lg:text-2xl font-bold text-primary">智能试题结构识别</h1>
+        <div className="flex items-center gap-4">
+          {/* 历史记录面板切换按钮 */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+            className="lg:hidden"
+          >
+            {isHistoryOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+          </Button>
+          <a 
+            href="https://github.com/lovable-dev/c5fe2474-d81b-4c79-850f-89431dfc1704" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Github className="h-6 w-6" />
+          </a>
+        </div>
       </header>
 
       <main className="flex-1 overflow-hidden">
         <div className="h-full flex">
           {/* 左侧：输入和分析区域 */}
           <div className="flex-1 flex flex-col overflow-y-auto">
-            <div className="flex-1 p-6">
+            <div className="flex-1 p-4 lg:p-6">
               <div className="max-w-5xl mx-auto space-y-4">
                 {/* 学科选择和OCR增强配置区域 */}
                 <SubjectAndTypeSelector
@@ -298,7 +320,7 @@ const Index = () => {
 
                 {/* 描述文案 - 与输入框左对齐 */}
                 <div className="text-left">
-                  <p className="text-lg text-muted-foreground">
+                  <p className="text-base lg:text-lg text-muted-foreground">
                     粘贴试题文本或上传图片，即刻获得结构化分析。支持数学、物理、化学、语文、英语等学科的多种题型识别。
                   </p>
                 </div>
@@ -364,15 +386,32 @@ const Index = () => {
             </div>
           </div>
 
-          {/* 右侧：历史记录 */}
-          <div className="w-80 border-l bg-background/50">
-            <OCRHistory
-              history={history}
-              onRemoveItem={removeItem}
-              onExport={exportHistory}
-              onClear={clearHistory}
+          {/* 右侧：历史记录 - 响应式设计 */}
+          {isHistoryOpen && (
+            <div className={`
+              w-full absolute inset-y-0 right-0 z-20 bg-background border-l 
+              lg:relative lg:w-80 lg:z-auto
+              transition-transform duration-300 ease-in-out
+              ${isHistoryOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+            `}>
+              <div className="h-full bg-background/95 backdrop-blur-sm lg:bg-background/50">
+                <OCRHistory
+                  history={history}
+                  onRemoveItem={removeItem}
+                  onExport={exportHistory}
+                  onClear={clearHistory}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* 遮罩层，仅在小屏幕且历史记录面板打开时显示 */}
+          {isHistoryOpen && (
+            <div 
+              className="fixed inset-0 bg-black/50 z-10 lg:hidden"
+              onClick={() => setIsHistoryOpen(false)}
             />
-          </div>
+          )}
         </div>
       </main>
     </div>

@@ -101,7 +101,7 @@ export function SubjectAndTypeSelector({
   return (
     <Card className="mb-6">
       <CardContent className="p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
           <SubjectSelector
             selectedSubject={selectedSubject}
             onSubjectChange={onSubjectChange}
@@ -121,7 +121,7 @@ export function SubjectAndTypeSelector({
             onSave={saveToDatabase}
           />
           
-          <div className="flex justify-end">
+          <div className="flex justify-start lg:justify-end">
             <MistralConfig />
           </div>
         </div>
