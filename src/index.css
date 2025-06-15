@@ -77,12 +77,3 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
-
-@layer utilities {
-  .bg-grid {
-    background-image:
-      linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
-      linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px);
-    background-size: 30px 30px;
-  }
-}

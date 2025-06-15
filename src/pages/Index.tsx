@@ -269,7 +269,7 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="h-screen w-full bg-background bg-grid text-foreground flex flex-col">
+    <div className="h-screen w-full bg-background text-foreground flex flex-col">
       <header className="w-full flex justify-between items-center p-6 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
         <h1 className="text-2xl font-bold text-primary">智能试题结构识别</h1>
         <a 
