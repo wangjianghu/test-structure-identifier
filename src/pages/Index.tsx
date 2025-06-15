@@ -44,7 +44,7 @@ const Index = () => {
         tessedit_ocr_engine_mode: OEM.LSTM_ONLY, // 使用LSTM引擎，对复杂文本效果更好
         preserve_interword_spaces: '1',
         // 扩展字符白名单，包含更多学科符号
-        tessedit_char_whitelist: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz一二三四五六七八九十零.,()[]{}=+-×÷≤≥≠∞∑∫√²³¹⁰±∩∪∈∉⊂⊃∅∠∴∵∝∂∆∇φψωαβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ℃℉°′″π∞∟⊥∥∠∠∴∵∽≈≡→←↑↓⇋⇌⇄⇀⇁∴∵∀∃抛物线焦点双曲线渐近线距离已知集合的到线为选择题ABCDHClNaOHCaCO₃SO₄NO₃NH₄HNO₃H₂SO₄NaClKBrMgFeAlCuZnAgPbHgCdSnSbBiMnCrNiCoVTiW电子质子中子原子分子离子化合价氧化还原反应溶液浓度摩尔质量阿伏伽德罗常数速度加速度力重力摩擦力弹力压强密度温度热量功率能量动能势能电流电压电阻电容电感磁场磁感应强度波长频率振幅光速声速<>|_^/\\~`!@#$%&*'';:？。，、（）「」『』《》【】〈〉〖〗·…""''", // 包含数学、化学、物理符号和术语
+        tessedit_char_whitelist: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz一二三四五六七八九十零.,()[]{}=+-×÷≤≥≠∞∑∫√²³¹⁰±∩∪∈∉⊂⊃∅∠∴∵∝∂∆∇φψωαβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ℃℉°′″π∞∟⊥∥∠∠∴∵∽≈≡→←↑↓⇋⇌⇄⇀⇁∴∵∀∃抛物线焦点双曲线渐近线距离已知集合的到线为选择题ABCDHClNaOHCaCO₃SO₄NO₃NH₄HNO₃H₂SO₄NaClKBrMgFeAlCuZnAgPbHgCdSnSbBiMnCrNiCoVTiW电子质子中子原子分子离子化合价氧化还原反应溶液浓度摩尔质量阿伏伽德罗常数速度加速度力重力摩擦力弹力压强密度温度热量功率能量动能势能电流电压电阻电容电感磁场磁感应强度波长频率振幅光速声速<>|_^/\\~`!@#$%&*';:？。，、（）「」『』《》【】〈〉〖〗·…\"\"''", // 包含数学、化学、物理符号和术语
         user_defined_dpi: '300', // 提高DPI以获得更好的识别效果
         // 优化识别模式
         tessedit_do_invert: '0',
