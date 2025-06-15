@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Github, Zap } from "lucide-react";
@@ -18,8 +17,17 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isOcrLoading, setIsOcrLoading] = useState(false);
   const [ocrResult, setOcrResult] = useState<OCRResult | null>(null);
+  const [currentImageHistoryId, setCurrentImageHistoryId] = useState<string | null>(null);
   
-  const { history, addToHistory, clearHistory, removeItem, exportHistory } = useOCRHistory();
+  const { 
+    history, 
+    addTextToHistory, 
+    addImageToHistory, 
+    updateHistoryItemAnalysis, 
+    clearHistory, 
+    removeItem, 
+    exportHistory 
+  } = useOCRHistory();
 
   const handleAnalyze = () => {
     setIsLoading(true);
@@ -27,6 +35,17 @@ const Index = () => {
     setTimeout(() => {
       const result = parseQuestion(inputText);
       setAnalysisResult(result);
+      
+      // 记录分析结果到历史
+      if (currentImageHistoryId) {
+        // 如果当前是图片输入，更新对应的历史记录
+        updateHistoryItemAnalysis(currentImageHistoryId, result);
+        setCurrentImageHistoryId(null);
+      } else {
+        // 如果是文本输入，添加新的历史记录
+        addTextToHistory(inputText, result);
+      }
+      
       setIsLoading(false);
     }, 500);
   };
@@ -36,6 +55,7 @@ const Index = () => {
     setIsOcrLoading(true);
     setAnalysisResult(null);
     setOcrResult(null);
+    setCurrentImageHistoryId(null);
     
     toast.info("开始高级 OCR 处理...", {
       description: "正在进行图像预处理、文字识别和智能分析。",
@@ -52,7 +72,8 @@ const Index = () => {
       setInputText(result.text);
       
       // 添加到历史记录
-      await addToHistory(file, result);
+      const historyItem = await addImageToHistory(file, result);
+      setCurrentImageHistoryId(historyItem.id);
       
       // 显示处理结果
       if (result.classification.isQuestion) {
@@ -74,7 +95,13 @@ const Index = () => {
       enhancedOCR.destroy();
       setIsOcrLoading(false);
     }
-  }, [isOcrLoading, addToHistory]);
+  }, [isOcrLoading, addImageToHistory]);
+
+  // Reset current image history ID when text is manually changed
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputText(e.target.value);
+    setCurrentImageHistoryId(null);
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) {
@@ -139,7 +166,7 @@ const Index = () => {
             <div className="max-w-2xl">
               <QuestionInput
                 value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
+                onChange={handleTextChange}
                 onImageUpload={handleImageUpload}
                 isOcrLoading={isOcrLoading}
                 disabled={isOcrLoading || isLoading}
@@ -178,7 +205,7 @@ const Index = () => {
             )}
           </div>
 
-          {/* 右侧：OCR 历史记录 */}
+          {/* 右侧：分析历史记录 */}
           <div className="lg:col-span-1">
             <OCRHistory
               history={history}
