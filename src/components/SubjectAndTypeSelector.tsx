@@ -39,19 +39,33 @@ export function SubjectAndTypeSelector({
 
   const sendToEmail = async (content: string) => {
     try {
-      // 模拟发送邮箱功能
-      console.log('发送题型示例到邮箱 dijiuxiaoshi@foxmail.com:', content);
+      // 创建邮件链接，用户可以直接点击发送
+      const subject = encodeURIComponent("题型结构示例提交");
+      const body = encodeURIComponent(`题型结构示例：\n\n${content}\n\n提交时间：${new Date().toLocaleString()}`);
+      const mailtoLink = `mailto:dijiuxiaoshi@foxmail.com?subject=${subject}&body=${body}`;
       
-      // 这里应该调用实际的邮件发送API
-      // 由于是前端应用，实际实现需要后端支持
+      // 尝试打开邮件客户端
+      window.location.href = mailtoLink;
+      
+      console.log('题型示例已准备发送到邮箱:', content);
+      
       toast.success("题型示例已记录", {
-        description: "您的题型结构示例已保存并将用于提升识别效果"
+        description: "邮件客户端已打开，请确认发送题型结构示例"
       });
     } catch (error) {
-      console.error('发送邮件失败:', error);
-      toast.error("保存失败", {
-        description: "无法保存题型示例，请稍后重试"
-      });
+      console.error('打开邮件客户端失败:', error);
+      
+      // 如果无法打开邮件客户端，提供复制功能
+      try {
+        await navigator.clipboard.writeText(`题型结构示例：\n\n${content}\n\n请发送至：dijiuxiaoshi@foxmail.com`);
+        toast.success("内容已复制到剪贴板", {
+          description: "请手动发送至 dijiuxiaoshi@foxmail.com"
+        });
+      } catch (clipboardError) {
+        toast.error("保存失败", {
+          description: "无法自动发送邮件，请手动将内容发送至 dijiuxiaoshi@foxmail.com"
+        });
+      }
     }
   };
 
@@ -91,7 +105,7 @@ export function SubjectAndTypeSelector({
             </Select>
           </div>
           
-          {/* 题型示例行 */}
+          {/* 题型示例行 - 修复溢出问题 */}
           <div className="flex items-center gap-3">
             <Label htmlFor="question-type-example" className="text-sm whitespace-nowrap">题型示例：</Label>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -102,7 +116,7 @@ export function SubjectAndTypeSelector({
                   onClick={handleInputClick}
                   readOnly
                   placeholder="点击输入题型结构示例"
-                  className="flex-1 cursor-pointer"
+                  className="flex-1 cursor-pointer overflow-hidden text-ellipsis"
                 />
               </DialogTrigger>
               <DialogContent className="max-w-md">
