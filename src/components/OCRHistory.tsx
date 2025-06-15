@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trash2, Download, FileText, Image, Type, ChevronLeft, ChevronRight } from "lucide-react";
 import { HistoryItem } from "@/types/ocrHistory";
 import { format } from "date-fns";
@@ -94,9 +95,18 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
   };
 
   const formatProcessingTime = (inputTime: Date, outputTime?: Date) => {
-    if (!outputTime) return "处理中...";
+    if (!outputTime) return "-";
     const processingMs = outputTime.getTime() - inputTime.getTime();
     return `${processingMs}ms`;
+  };
+
+  const getClassificationConfidence = (item: HistoryItem) => {
+    if (item.inputType === 'image' && item.ocrResult) {
+      return `${(item.ocrResult.classification.confidence * 100).toFixed(1)}%`;
+    } else if (item.inputType === 'text') {
+      return "95.0%";
+    }
+    return "-";
   };
 
   if (history.length === 0) {
@@ -138,139 +148,101 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
       
       <div className="flex-1 overflow-hidden p-4">
         <ScrollArea className="h-full">
-          <div className="space-y-4 pr-4">
-            {currentItems.map((item) => (
-              <div key={item.id} className="border rounded-lg p-4 space-y-3 bg-card">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <Badge variant="outline" className="text-xs">
-                        {item.inputType === 'image' ? (
-                          <>
-                            <Image className="h-3 w-3 mr-1" />
-                            图片输入
-                          </>
-                        ) : (
-                          <>
-                            <Type className="h-3 w-3 mr-1" />
-                            文本输入
-                          </>
-                        )}
-                      </Badge>
-                      
-                      {item.selectedSubject && (
-                        <Badge variant="secondary" className="text-xs">
-                          {item.selectedSubject}
-                        </Badge>
-                      )}
-                      
-                      {item.inputType === 'image' && item.ocrResult && (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>输入类型</TableHead>
+                <TableHead>分类置信度</TableHead>
+                <TableHead>输入时间</TableHead>
+                <TableHead>完成时间</TableHead>
+                <TableHead>耗时</TableHead>
+                <TableHead>输入内容</TableHead>
+                <TableHead>OCR识别结果</TableHead>
+                <TableHead>分析结果</TableHead>
+                <TableHead>操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {currentItems.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs">
+                      {item.inputType === 'image' ? (
                         <>
-                          <Badge variant={item.ocrResult.classification.isQuestion ? "default" : "secondary"}>
-                            {item.ocrResult.classification.isQuestion ? "试题" : "非试题"}
-                          </Badge>
+                          <Image className="h-3 w-3 mr-1" />
+                          图片输入
+                        </>
+                      ) : (
+                        <>
+                          <Type className="h-3 w-3 mr-1" />
+                          文本输入
                         </>
                       )}
-                      
-                      {item.analysisResult && (
-                        <Badge variant="default">
-                          已分析
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                      <span>输入: {format(item.inputTime, 'HH:mm:ss')}</span>
-                      {item.outputTime && (
-                        <>
-                          <span>•</span>
-                          <span>完成: {format(item.outputTime, 'HH:mm:ss')}</span>
-                          <span>•</span>
-                          <span>耗时: {formatProcessingTime(item.inputTime, item.outputTime)}</span>
-                        </>
-                      )}
-                      {item.inputType === 'image' && item.ocrResult && (
-                        <>
-                          <span>•</span>
-                          <span>置信度: {(item.ocrResult.classification.confidence * 100).toFixed(1)}%</span>
-                        </>
-                      )}
-                      {item.inputType === 'text' && (
-                        <>
-                          <span>•</span>
-                          <span>置信度: 95.0%</span>
-                        </>
-                      )}
-                    </div>
-
-                    {item.questionTypeExample && (
-                      <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded text-xs">
-                        <span className="font-medium">题型示例:</span> {item.questionTypeExample}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{getClassificationConfidence(item)}</TableCell>
+                  <TableCell className="text-sm">
+                    {format(item.inputTime, 'yyyy-MM-dd HH:mm:ss')}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {item.outputTime ? format(item.outputTime, 'yyyy-MM-dd HH:mm:ss') : "-"}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {formatProcessingTime(item.inputTime, item.outputTime)}
+                  </TableCell>
+                  <TableCell>
+                    {item.inputType === 'image' ? (
+                      <ImageViewDialog 
+                        imageUrl={item.imageDataUrl} 
+                        fileName={item.originalImage.name}
+                      >
+                        <img 
+                          src={item.imageDataUrl} 
+                          alt="分析图片" 
+                          className="w-16 h-16 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                          title="点击查看大图"
+                        />
+                      </ImageViewDialog>
+                    ) : (
+                      <div className="max-w-48 text-sm text-muted-foreground truncate">
+                        {item.inputText || "无输入内容"}
                       </div>
                     )}
-                  </div>
-                  
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => onRemoveItem(item.id)}
-                    className="text-muted-foreground hover:text-destructive flex-shrink-0"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                {/* 图片输入时：独立一行显示正方形缩略图 */}
-                {item.inputType === 'image' && (
-                  <div className="flex justify-center">
-                    <ImageViewDialog 
-                      imageUrl={item.imageDataUrl} 
-                      fileName={item.originalImage.name}
+                  </TableCell>
+                  <TableCell>
+                    {item.inputType === 'image' && item.ocrResult ? (
+                      <div className="max-w-48 text-sm text-muted-foreground truncate">
+                        {item.ocrResult.text || "无识别结果"}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {item.analysisResult ? (
+                      <div className="text-sm space-y-1">
+                        <div>学科: {item.analysisResult.subject}</div>
+                        <div>题型: {item.analysisResult.questionType}</div>
+                        <div>结构: {getStructuralOverview(item.analysisResult)}</div>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">未分析</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => onRemoveItem(item.id)}
+                      className="text-muted-foreground hover:text-destructive"
                     >
-                      <img 
-                        src={item.imageDataUrl} 
-                        alt="分析图片" 
-                        className="w-20 h-20 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
-                        title="点击查看大图"
-                      />
-                    </ImageViewDialog>
-                  </div>
-                )}
-                
-                {/* 图片输入时：显示OCR结果 */}
-                {item.inputType === 'image' && item.ocrResult && (
-                  <div className="bg-slate-50 dark:bg-slate-900 rounded p-3">
-                    <p className="text-sm font-medium mb-1">OCR识别结果:</p>
-                    <div className="text-sm text-muted-foreground whitespace-pre-wrap break-words h-20 overflow-y-auto border rounded p-2 bg-background">
-                      {item.ocrResult.text || "无识别结果"}
-                    </div>
-                  </div>
-                )}
-                
-                {/* 文本输入时：显示输入内容 */}
-                {item.inputType === 'text' && (
-                  <div className="bg-slate-50 dark:bg-slate-900 rounded p-3">
-                    <p className="text-sm font-medium mb-1">输入内容:</p>
-                    <div className="text-sm text-muted-foreground whitespace-pre-wrap break-words h-20 overflow-y-auto border rounded p-2 bg-background">
-                      {item.inputText || "无输入内容"}
-                    </div>
-                  </div>
-                )}
-                
-                {/* 显示分析结果（图片和文本输入都显示） */}
-                {item.analysisResult && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-3">
-                    <p className="text-sm font-medium mb-1">分析结果:</p>
-                    <div className="text-sm text-muted-foreground space-y-1">
-                      <div>学科: {item.analysisResult.subject}</div>
-                      <div>题型: {item.analysisResult.questionType}</div>
-                      <div>结构概况: {getStructuralOverview(item.analysisResult)}</div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </ScrollArea>
       </div>
 
