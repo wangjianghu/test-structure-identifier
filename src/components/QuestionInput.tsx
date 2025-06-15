@@ -1,55 +1,52 @@
 import * as React from "react";
 import { Textarea, type TextareaProps } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Image as ImageIcon, Zap, X, Eye, RotateCcw } from "lucide-react";
+import { Image as ImageIcon, Zap, X, Eye, Trash2, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ImageViewDialog } from "./ImageViewDialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ParsedQuestion } from "@/lib/parser";
-import { SecureOCR, SecureOCRResult } from "@/lib/secureOCR";
-import { TextHistoryItem, ImageHistoryItem } from "@/types/ocrHistory";
-import { toast } from "sonner";
 
 interface QuestionInputProps extends Omit<TextareaProps, 'className'> {
-  onAnalysisComplete?: (result: ParsedQuestion | null) => void;
-  onTextSubmit?: (text: string, result: ParsedQuestion) => TextHistoryItem;
-  onImageSubmit?: (file: File, ocrResult: SecureOCRResult, analysisResult?: ParsedQuestion) => Promise<ImageHistoryItem>;
-  onImageAnalysisUpdate?: (id: string, analysisResult: ParsedQuestion) => void;
-  selectedSubject?: string;
-  questionTypeExample?: string;
+  onImagesUpload: (files: File[]) => void;
+  uploadedImages: File[];
+  onRemoveImage: (index: number) => void;
+  isOcrLoading: boolean;
   className?: string;
+  onAnalyze: () => void;
+  isAnalyzing: boolean;
+  onClear?: (clearOptimizationParams?: boolean) => void;
 }
 
 export function QuestionInput({ 
-  onAnalysisComplete,
-  onTextSubmit,
-  onImageSubmit,
-  onImageAnalysisUpdate,
-  selectedSubject,
-  questionTypeExample,
+  onImagesUpload,
+  uploadedImages,
+  onRemoveImage,
+  isOcrLoading, 
   className, 
+  onAnalyze, 
+  isAnalyzing,
+  onClear,
   value,
   ...props 
 }: QuestionInputProps) {
-  const [uploadedImages, setUploadedImages] = React.useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = React.useState<string[]>([]);
-  const [isOcrLoading, setIsOcrLoading] = React.useState(false);
-  const [isAnalyzing, setIsAnalyzing] = React.useState(false);
   const [clearOptimizationParams, setClearOptimizationParams] = React.useState(() => {
+    // 从 localStorage 读取持久化状态
     const saved = localStorage.getItem('clearOptimizationParams');
     return saved ? JSON.parse(saved) : false;
   });
 
-  const secureOCR = React.useMemo(() => new SecureOCR(), []);
-
+  // 持久化状态到 localStorage
   React.useEffect(() => {
     localStorage.setItem('clearOptimizationParams', JSON.stringify(clearOptimizationParams));
   }, [clearOptimizationParams]);
 
   React.useEffect(() => {
+    // 创建图片预览URLs
     const previews = uploadedImages.map(file => URL.createObjectURL(file));
     setImagePreviews(previews);
 
+    // 清理旧的URLs
     return () => {
       previews.forEach(url => URL.revokeObjectURL(url));
     };
@@ -57,38 +54,13 @@ export function QuestionInput({
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    
-    const validFiles = files.filter(file => {
-      if (!file.type.startsWith('image/')) {
-        toast.error(`文件 ${file.name} 不是有效的图片格式`);
-        return false;
-      }
-      
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error(`文件 ${file.name} 太大，最大支持 10MB`);
-        return false;
-      }
-      
-      const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'];
-      const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
-      if (!allowedExtensions.includes(fileExtension)) {
-        toast.error(`文件 ${file.name} 格式不支持`);
-        return false;
-      }
-      
-      return true;
-    });
-
-    if (validFiles.length > 0) {
-      setUploadedImages(prev => [...prev, ...validFiles]);
+    if (files.length > 0) {
+      onImagesUpload([...uploadedImages, ...files]);
     }
-    event.target.value = '';
+    event.target.value = ''; // 清空文件输入
   };
 
-  const handleRemoveImage = (index: number) => {
-    setUploadedImages(prev => prev.filter((_, i) => i !== index));
-  };
-
+  // 检测编程文本类型
   const detectProgrammingText = (text: string) => {
     const patterns = {
       json: /^\s*[\{\[]/,
@@ -115,96 +87,9 @@ export function QuestionInput({
     return null;
   }, [value]);
 
-  const processImageWithSecureOCR = async (file: File): Promise<SecureOCRResult> => {
-    try {
-      try {
-        return await secureOCR.processImageWithMistral(file);
-      } catch (mistralError) {
-        console.warn('Mistral OCR failed, falling back to enhanced OCR:', mistralError);
-        toast.warning('高精度识别服务暂时不可用，使用标准识别');
-        
-        const { EnhancedOCR } = await import('@/lib/enhancedOCR');
-        const enhancedOCR = new EnhancedOCR();
-        const result = await enhancedOCR.processImage(file);
-        
-        return {
-          text: result.text,
-          confidence: result.confidence,
-          classification: result.classification,
-          preprocessingSteps: result.preprocessingSteps,
-          processingTime: result.processingTime
-        };
-      }
-    } catch (error) {
-      console.error('All OCR methods failed:', error);
-      throw new Error('图片识别失败，请检查图片格式和网络连接');
-    }
-  };
-
-  const handleAnalyze = async () => {
-    if (!value && uploadedImages.length === 0) return;
-    
-    setIsAnalyzing(true);
-    try {
-      let resultText = '';
-      
-      if (uploadedImages.length > 0) {
-        setIsOcrLoading(true);
-        for (const file of uploadedImages) {
-          try {
-            const ocrResult = await processImageWithSecureOCR(file);
-            resultText += ocrResult.text + '\n';
-            
-            if (onImageSubmit) {
-              await onImageSubmit(file, ocrResult);
-            }
-          } catch (error) {
-            console.error(`OCR failed for file ${file.name}:`, error);
-            toast.error(`处理图片 ${file.name} 时出错: ${error instanceof Error ? error.message : '未知错误'}`);
-          }
-        }
-        setIsOcrLoading(false);
-      }
-      
-      if (typeof value === 'string' && value.trim()) {
-        resultText += value;
-      }
-      
-      const mockResult: ParsedQuestion = {
-        body: resultText.trim(),
-        questionNumber: null,
-        questionType: '问答题',
-        subject: selectedSubject || '数学',
-        options: [],
-        hasFormulas: /[×÷±≤≥∞∑∫√²³¹⁰]/.test(resultText)
-      };
-      
-      if (onAnalysisComplete) {
-        onAnalysisComplete(mockResult);
-      }
-      
-      if (onTextSubmit && typeof value === 'string' && value.trim()) {
-        onTextSubmit(value, mockResult);
-      }
-      
-    } catch (error) {
-      console.error('Analysis failed:', error);
-      toast.error('分析失败，请重试');
-    } finally {
-      setIsAnalyzing(false);
-      setIsOcrLoading(false);
-    }
-  };
-
-  const handleClear = (clearOptimizationParams?: boolean) => {
-    setUploadedImages([]);
-    if (props.onChange) {
-      const mockEvent = { target: { value: '' } } as React.ChangeEvent<HTMLTextAreaElement>;
-      props.onChange(mockEvent);
-    }
-    
-    if (clearOptimizationParams && onAnalysisComplete) {
-      onAnalysisComplete(null);
+  const handleClear = () => {
+    if (onClear) {
+      onClear(clearOptimizationParams);
     }
   };
 
@@ -224,6 +109,7 @@ export function QuestionInput({
         {...props}
       />
       
+      {/* 编程文本类型提示 */}
       {currentTextType && (
         <div className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 border-t border-blue-200 dark:border-blue-800">
           <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
@@ -232,8 +118,10 @@ export function QuestionInput({
         </div>
       )}
       
+      {/* 底部操作栏 */}
       <div className="flex items-center justify-between p-2 border-t bg-slate-50 dark:bg-slate-900/50 rounded-b-md">
         <div className="flex items-center gap-2">
+          {/* 上传按钮 */}
           <Button asChild variant="ghost" size="icon" disabled={isOcrLoading || isAnalyzing} className="cursor-pointer rounded-md h-8 w-8">
             <label htmlFor="file-upload-input">
               <ImageIcon className="h-4 w-4 text-muted-foreground" />
@@ -250,6 +138,7 @@ export function QuestionInput({
             disabled={isOcrLoading || isAnalyzing}
           />
 
+          {/* 图片缩略图 */}
           {imagePreviews.length > 0 && (
             <div className="flex items-center gap-1 ml-2">
               {imagePreviews.map((preview, index) => (
@@ -262,13 +151,14 @@ export function QuestionInput({
                     />
                   </div>
                   
+                  {/* 右上角删除按钮 - 修复点击事件 */}
                   <Button 
                     variant="ghost" 
                     size="sm" 
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      handleRemoveImage(index);
+                      onRemoveImage(index);
                     }}
                     className="absolute -top-1 -right-1 h-4 w-4 p-0 bg-red-500 text-white hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                     disabled={isOcrLoading || isAnalyzing}
@@ -276,6 +166,7 @@ export function QuestionInput({
                     <X className="h-2 w-2" />
                   </Button>
                   
+                  {/* 中央预览按钮 */}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <ImageViewDialog 
                       imageUrl={preview} 
@@ -293,6 +184,7 @@ export function QuestionInput({
         </div>
 
         <div className="flex items-center gap-3">
+          {/* 清空选项 */}
           <div className="flex items-center gap-2">
             <Checkbox 
               id="clear-optimization"
@@ -308,8 +200,9 @@ export function QuestionInput({
             </label>
           </div>
 
+          {/* 清空按钮 */}
           <Button 
-            onClick={() => handleClear(clearOptimizationParams)} 
+            onClick={handleClear} 
             disabled={isAnalyzing || isOcrLoading || !hasContent} 
             size="sm"
             variant="outline"
@@ -318,13 +211,14 @@ export function QuestionInput({
             清空
           </Button>
 
+          {/* 分析按钮 */}
           <Button 
-            onClick={handleAnalyze} 
+            onClick={onAnalyze} 
             disabled={isAnalyzing || isOcrLoading || (!value && uploadedImages.length === 0)} 
             size="sm"
           >
             <Zap className="mr-2 h-4 w-4" />
-            {isAnalyzing ? "分析中..." : isOcrLoading ? "识别中..." : "开始分析"}
+            {isAnalyzing ? "分析中..." : "开始分析"}
           </Button>
         </div>
       </div>

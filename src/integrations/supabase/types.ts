@@ -25,7 +25,6 @@ export type Database = {
           question_type_example: string | null
           selected_subject: string | null
           timestamp: string
-          user_id: string | null
         }
         Insert: {
           analysis_result?: Json | null
@@ -42,7 +41,6 @@ export type Database = {
           question_type_example?: string | null
           selected_subject?: string | null
           timestamp: string
-          user_id?: string | null
         }
         Update: {
           analysis_result?: Json | null
@@ -59,34 +57,6 @@ export type Database = {
           question_type_example?: string | null
           selected_subject?: string | null
           timestamp?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          avatar_url: string | null
-          created_at: string
-          email: string | null
-          full_name: string | null
-          id: string
-          updated_at: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          email?: string | null
-          full_name?: string | null
-          id: string
-          updated_at?: string
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string
-          email?: string | null
-          full_name?: string | null
-          id?: string
-          updated_at?: string
         }
         Relationships: []
       }
@@ -99,7 +69,6 @@ export type Database = {
           structure_example: string
           subject: string
           usage_count: number
-          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -109,7 +78,6 @@ export type Database = {
           structure_example: string
           subject: string
           usage_count?: number
-          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -119,7 +87,6 @@ export type Database = {
           structure_example?: string
           subject?: string
           usage_count?: number
-          user_id?: string | null
         }
         Relationships: []
       }
