@@ -1,35 +1,40 @@
+
 import * as React from "react";
 import { Textarea, type TextareaProps } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Image as ImageIcon, Zap, X, Eye, Trash2, RotateCcw } from "lucide-react";
+import { Image as ImageIcon, Zap, X, Eye, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ImageViewDialog } from "./ImageViewDialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ParsedQuestion } from "@/lib/parser";
+import { OCRResult } from "@/lib/enhancedOCR";
+import { TextHistoryItem, ImageHistoryItem } from "@/types/ocrHistory";
 
 interface QuestionInputProps extends Omit<TextareaProps, 'className'> {
-  onImagesUpload: (files: File[]) => void;
-  uploadedImages: File[];
-  onRemoveImage: (index: number) => void;
-  isOcrLoading: boolean;
+  onAnalysisComplete?: (result: ParsedQuestion | null) => void;
+  onTextSubmit?: (text: string, result: ParsedQuestion) => TextHistoryItem;
+  onImageSubmit?: (file: File, ocrResult: OCRResult, analysisResult?: ParsedQuestion) => Promise<ImageHistoryItem>;
+  onImageAnalysisUpdate?: (id: string, analysisResult: ParsedQuestion) => void;
+  selectedSubject?: string;
+  questionTypeExample?: string;
   className?: string;
-  onAnalyze: () => void;
-  isAnalyzing: boolean;
-  onClear?: (clearOptimizationParams?: boolean) => void;
 }
 
 export function QuestionInput({ 
-  onImagesUpload,
-  uploadedImages,
-  onRemoveImage,
-  isOcrLoading, 
+  onAnalysisComplete,
+  onTextSubmit,
+  onImageSubmit,
+  onImageAnalysisUpdate,
+  selectedSubject,
+  questionTypeExample,
   className, 
-  onAnalyze, 
-  isAnalyzing,
-  onClear,
   value,
   ...props 
 }: QuestionInputProps) {
+  const [uploadedImages, setUploadedImages] = React.useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = React.useState<string[]>([]);
+  const [isOcrLoading, setIsOcrLoading] = React.useState(false);
+  const [isAnalyzing, setIsAnalyzing] = React.useState(false);
   const [clearOptimizationParams, setClearOptimizationParams] = React.useState(() => {
     // 从 localStorage 读取持久化状态
     const saved = localStorage.getItem('clearOptimizationParams');
@@ -55,9 +60,13 @@ export function QuestionInput({
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     if (files.length > 0) {
-      onImagesUpload([...uploadedImages, ...files]);
+      setUploadedImages(prev => [...prev, ...files]);
     }
     event.target.value = ''; // 清空文件输入
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setUploadedImages(prev => prev.filter((_, i) => i !== index));
   };
 
   // 检测编程文本类型
@@ -87,9 +96,43 @@ export function QuestionInput({
     return null;
   }, [value]);
 
-  const handleClear = () => {
-    if (onClear) {
-      onClear(clearOptimizationParams);
+  const handleAnalyze = async () => {
+    if (!value && uploadedImages.length === 0) return;
+    
+    setIsAnalyzing(true);
+    try {
+      // This is a placeholder - in real implementation, this would call the OCR and analysis services
+      // For now, we'll just simulate the process
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Mock analysis result
+      const mockResult: ParsedQuestion = {
+        body: typeof value === 'string' ? value : '',
+        questionType: '问答题',
+        subject: selectedSubject || '数学',
+        options: []
+      };
+      
+      if (onAnalysisComplete) {
+        onAnalysisComplete(mockResult);
+      }
+    } catch (error) {
+      console.error('Analysis failed:', error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleClear = (clearOptimizationParams?: boolean) => {
+    setUploadedImages([]);
+    // Clear the textarea value by calling the parent's onChange
+    if (props.onChange) {
+      const mockEvent = { target: { value: '' } } as React.ChangeEvent<HTMLTextAreaElement>;
+      props.onChange(mockEvent);
+    }
+    
+    if (clearOptimizationParams && onAnalysisComplete) {
+      onAnalysisComplete(null);
     }
   };
 
@@ -151,14 +194,14 @@ export function QuestionInput({
                     />
                   </div>
                   
-                  {/* 右上角删除按钮 - 修复点击事件 */}
+                  {/* 右上角删除按钮 */}
                   <Button 
                     variant="ghost" 
                     size="sm" 
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      onRemoveImage(index);
+                      handleRemoveImage(index);
                     }}
                     className="absolute -top-1 -right-1 h-4 w-4 p-0 bg-red-500 text-white hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                     disabled={isOcrLoading || isAnalyzing}
@@ -202,7 +245,7 @@ export function QuestionInput({
 
           {/* 清空按钮 */}
           <Button 
-            onClick={handleClear} 
+            onClick={() => handleClear(clearOptimizationParams)} 
             disabled={isAnalyzing || isOcrLoading || !hasContent} 
             size="sm"
             variant="outline"
@@ -213,7 +256,7 @@ export function QuestionInput({
 
           {/* 分析按钮 */}
           <Button 
-            onClick={onAnalyze} 
+            onClick={handleAnalyze} 
             disabled={isAnalyzing || isOcrLoading || (!value && uploadedImages.length === 0)} 
             size="sm"
           >
