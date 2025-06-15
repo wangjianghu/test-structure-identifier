@@ -81,9 +81,9 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
 
   const getClassificationConfidence = (item: HistoryItem) => {
     if (item.inputType === 'image' && item.ocrResult) {
-      return `${(item.ocrResult.classification.confidence * 100).toFixed(1)}%`;
+      return `置信度：${(item.ocrResult.classification.confidence * 100).toFixed(1)}%`;
     } else if (item.inputType === 'text') {
-      return "95.0%";
+      return "置信度：95.0%";
     }
     return "-";
   };
@@ -197,21 +197,18 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm">
                         <Target className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">分类置信度:</span>
                         <span>{getClassificationConfidence(item)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">输入时间:</span>
-                        <span>{format(item.inputTime, 'yyyy-MM-dd HH:mm:ss')}</span>
+                        <span>输入：{format(item.inputTime, 'HH:mm:ss')}</span>
                       </div>
                     </div>
                     <div className="space-y-2">
                       {item.inputType === 'image' && item.outputTime && (
                         <div className="flex items-center gap-2 text-sm">
                           <Clock className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">完成时间:</span>
-                          <span>{format(item.outputTime, 'yyyy-MM-dd HH:mm:ss')}</span>
+                          <span>完成：{format(item.outputTime, 'HH:mm:ss')}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-2 text-sm">

@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,9 +13,9 @@ interface AnalysisHistoryTableProps {
 export function AnalysisHistoryTable({ history, onRemoveItem }: AnalysisHistoryTableProps) {
   const getClassificationConfidence = (item: HistoryItem) => {
     if (item.inputType === 'image' && item.ocrResult) {
-      return `${(item.ocrResult.classification.confidence * 100).toFixed(1)}%`;
+      return `置信度：${(item.ocrResult.classification.confidence * 100).toFixed(1)}%`;
     } else if (item.inputType === 'text') {
-      return "95.0%";
+      return "置信度：95.0%";
     }
     return "-";
   };
@@ -78,10 +77,10 @@ export function AnalysisHistoryTable({ history, onRemoveItem }: AnalysisHistoryT
               </TableCell>
               <TableCell className="text-sm">{getClassificationConfidence(item)}</TableCell>
               <TableCell className="text-xs">
-                {format(item.inputTime, 'yyyy-MM-dd HH:mm:ss')}
+                输入：{format(item.inputTime, 'HH:mm:ss')}
               </TableCell>
               <TableCell className="text-xs">
-                {item.outputTime ? format(item.outputTime, 'yyyy-MM-dd HH:mm:ss') : '-'}
+                {item.outputTime ? `完成：${format(item.outputTime, 'HH:mm:ss')}` : '-'}
               </TableCell>
               <TableCell className="text-sm">
                 {item.inputType === 'image' 
