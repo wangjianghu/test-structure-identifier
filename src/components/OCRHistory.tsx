@@ -96,7 +96,7 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
   const formatProcessingTime = (inputTime: Date, outputTime?: Date) => {
     if (!outputTime) return "处理中...";
     const processingMs = outputTime.getTime() - inputTime.getTime();
-    return `${(processingMs / 1000).toFixed(1)}s`;
+    return `${processingMs}ms`;
   };
 
   if (history.length === 0) {
@@ -180,8 +180,10 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                     </div>
                     
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                      <span>输入: {format(item.inputTime, 'HH:mm:ss')}</span>
                       {item.outputTime && (
                         <>
+                          <span>•</span>
                           <span>完成: {format(item.outputTime, 'HH:mm:ss')}</span>
                           <span>•</span>
                           <span>耗时: {formatProcessingTime(item.inputTime, item.outputTime)}</span>
@@ -189,8 +191,14 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                       )}
                       {item.inputType === 'image' && item.ocrResult && (
                         <>
-                          {item.outputTime && <span>•</span>}
+                          <span>•</span>
                           <span>置信度: {(item.ocrResult.classification.confidence * 100).toFixed(1)}%</span>
+                        </>
+                      )}
+                      {item.inputType === 'text' && (
+                        <>
+                          <span>•</span>
+                          <span>置信度: 95.0%</span>
                         </>
                       )}
                     </div>

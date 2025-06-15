@@ -56,57 +56,6 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
     copyToClipboard(fullText, "完整分析结果");
   };
 
-  const copyParentInfo = () => {
-    if (result.parentQuestion) {
-      const parentText = `父题题号: ${result.parentQuestion.number || ''}\n父题题干: ${result.parentQuestion.body}`;
-      copyToClipboard(parentText, "父题信息");
-    }
-  };
-
-  const copyParentBlock = () => {
-    if (result.parentQuestion) {
-      const parentText = `父题题号: ${result.parentQuestion.number || ''}\n父题题干: ${result.parentQuestion.body}`;
-      copyToClipboard(parentText, "父题内容块");
-    }
-  };
-
-  const copySubQuestionInfo = (subQ: any) => {
-    const subText = `子题题号: (${subQ.number})\n子题题干: ${subQ.body}`;
-    copyToClipboard(subText, "子题信息");
-  };
-
-  const copySubQuestionBlock = (subQ: any) => {
-    let subText = `子题题号: (${subQ.number})\n子题题干: ${subQ.body}`;
-    if (subQ.options && subQ.options.length > 0) {
-      subText += '\n选项:\n';
-      subQ.options.forEach((option: any) => {
-        subText += `${option.key}. ${option.value}\n`;
-      });
-    }
-    copyToClipboard(subText, "子题内容块");
-  };
-
-  const copyAllOptions = (options: any[]) => {
-    const optionsText = options.map(option => `${option.key}. ${option.value}`).join('\n');
-    copyToClipboard(optionsText, "全部选项");
-  };
-
-  const copyQuestionInfo = () => {
-    const questionText = `${result.questionNumber ? `题号: ${result.questionNumber}\n` : ''}题干: ${result.body}`;
-    copyToClipboard(questionText, "题目信息");
-  };
-
-  const copyQuestionBlock = () => {
-    let questionText = `${result.questionNumber ? `题号: ${result.questionNumber}\n` : ''}题干: ${result.body}`;
-    if (result.options && result.options.length > 0) {
-      questionText += '\n选项:\n';
-      result.options.forEach(option => {
-        questionText += `${option.key}. ${option.value}\n`;
-      });
-    }
-    copyToClipboard(questionText, "题目内容块");
-  };
-
   return (
     <Card className="w-full">
       <CardHeader className="pb-3">
@@ -158,7 +107,10 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={copyParentInfo}
+                  onClick={() => {
+                    const parentText = `父题题号: ${result.parentQuestion?.number || ''}\n父题题干: ${result.parentQuestion?.body}`;
+                    copyToClipboard(parentText, "父题信息");
+                  }}
                   className="flex items-center gap-1 text-xs h-7"
                 >
                   <Copy className="h-3 w-3" />
@@ -166,27 +118,37 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
                 </Button>
               </div>
               
-              <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg relative">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={copyParentBlock}
-                  className="absolute top-2 right-2 flex items-center gap-1 text-xs h-7"
-                >
-                  <Copy className="h-3 w-3" />
-                  复制内容块
-                </Button>
-                
+              <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
                 {result.parentQuestion.number && (
-                  <div>
-                    <span className="text-sm font-medium">父题题号:</span>
-                    <span className="ml-2 text-sm">{result.parentQuestion.number}</span>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-sm font-medium">父题题号:</span>
+                      <span className="ml-2 text-sm">{result.parentQuestion.number}</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyToClipboard(result.parentQuestion?.number || '', "父题题号")}
+                      className="flex items-center gap-1 text-xs h-6"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
                   </div>
                 )}
                 
-                <div>
-                  <span className="text-sm font-medium">父题题干:</span>
-                  <p className="mt-1 text-sm whitespace-pre-wrap">{result.parentQuestion.body}</p>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <span className="text-sm font-medium">父题题干:</span>
+                    <p className="mt-1 text-sm whitespace-pre-wrap">{result.parentQuestion.body}</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(result.parentQuestion?.body || '', "父题题干")}
+                    className="flex items-center gap-1 text-xs h-6 ml-2 flex-shrink-0"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
                 </div>
               </div>
             </div>
@@ -205,7 +167,10 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => copySubQuestionInfo(subQ)}
+                        onClick={() => {
+                          const subText = `子题题号: (${subQ.number})\n子题题干: ${subQ.body}`;
+                          copyToClipboard(subText, "子题信息");
+                        }}
                         className="flex items-center gap-1 text-xs h-7"
                       >
                         <Copy className="h-3 w-3" />
@@ -213,25 +178,35 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
                       </Button>
                     </div>
                     
-                    <div className="space-y-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded relative">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => copySubQuestionBlock(subQ)}
-                        className="absolute top-2 right-2 flex items-center gap-1 text-xs h-7"
-                      >
-                        <Copy className="h-3 w-3" />
-                        复制内容块
-                      </Button>
-                      
-                      <div>
-                        <span className="text-sm font-medium">子题题号:</span>
-                        <span className="ml-2 text-sm">({subQ.number})</span>
+                    <div className="space-y-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-sm font-medium">子题题号:</span>
+                          <span className="ml-2 text-sm">({subQ.number})</span>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyToClipboard(`(${subQ.number})`, "子题题号")}
+                          className="flex items-center gap-1 text-xs h-6"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
                       </div>
                       
-                      <div>
-                        <span className="text-sm font-medium">子题题干:</span>
-                        <p className="mt-1 text-sm whitespace-pre-wrap">{subQ.body}</p>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <span className="text-sm font-medium">子题题干:</span>
+                          <p className="mt-1 text-sm whitespace-pre-wrap">{subQ.body}</p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyToClipboard(subQ.body, "子题题干")}
+                          className="flex items-center gap-1 text-xs h-6 ml-2 flex-shrink-0"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
                       </div>
                     </div>
                     
@@ -242,7 +217,10 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => copyAllOptions(subQ.options)}
+                            onClick={() => {
+                              const optionsText = subQ.options?.map(option => `${option.key}. ${option.value}`).join('\n');
+                              copyToClipboard(optionsText || '', "全部选项");
+                            }}
                             className="flex items-center gap-1 text-xs h-7"
                           >
                             <Copy className="h-3 w-3" />
@@ -251,8 +229,16 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
                         </div>
                         <div className="space-y-1 p-2 bg-green-50 dark:bg-green-900/20 rounded">
                           {subQ.options.map((option: any, optIndex: number) => (
-                            <div key={optIndex} className="text-sm">
-                              {option.key}. {option.value}
+                            <div key={optIndex} className="flex items-center justify-between text-sm">
+                              <span>{option.key}. {option.value}</span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => copyToClipboard(`${option.key}. ${option.value}`, "选项")}
+                                className="flex items-center gap-1 text-xs h-6 ml-2 flex-shrink-0"
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
                             </div>
                           ))}
                         </div>
@@ -271,7 +257,10 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={copyQuestionInfo}
+                onClick={() => {
+                  const questionText = `${result.questionNumber ? `题号: ${result.questionNumber}\n` : ''}题干: ${result.body}`;
+                  copyToClipboard(questionText, "题目信息");
+                }}
                 className="flex items-center gap-1 text-xs h-7"
               >
                 <Copy className="h-3 w-3" />
@@ -279,27 +268,37 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
               </Button>
             </div>
             
-            <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg relative">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={copyQuestionBlock}
-                className="absolute top-2 right-2 flex items-center gap-1 text-xs h-7"
-              >
-                <Copy className="h-3 w-3" />
-                复制内容块
-              </Button>
-              
+            <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
               {result.questionNumber && (
-                <div>
-                  <span className="text-sm font-medium">题号:</span>
-                  <span className="ml-2 text-sm">{result.questionNumber}</span>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-medium">题号:</span>
+                    <span className="ml-2 text-sm">{result.questionNumber}</span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(result.questionNumber || '', "题号")}
+                    className="flex items-center gap-1 text-xs h-6"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
                 </div>
               )}
               
-              <div>
-                <span className="text-sm font-medium">题干:</span>
-                <p className="mt-1 text-sm whitespace-pre-wrap">{result.body}</p>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <span className="text-sm font-medium">题干:</span>
+                  <p className="mt-1 text-sm whitespace-pre-wrap">{result.body}</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => copyToClipboard(result.body, "题干")}
+                  className="flex items-center gap-1 text-xs h-6 ml-2 flex-shrink-0"
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
               </div>
             </div>
             
@@ -310,7 +309,10 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => copyAllOptions(result.options!)}
+                    onClick={() => {
+                      const optionsText = result.options?.map(option => `${option.key}. ${option.value}`).join('\n');
+                      copyToClipboard(optionsText || '', "全部选项");
+                    }}
                     className="flex items-center gap-1 text-xs h-7"
                   >
                     <Copy className="h-3 w-3" />
@@ -319,8 +321,16 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
                 </div>
                 <div className="space-y-1 p-2 bg-green-50 dark:bg-green-900/20 rounded">
                   {result.options.map((option, index) => (
-                    <div key={index} className="text-sm">
-                      {option.key}. {option.value}
+                    <div key={index} className="flex items-center justify-between text-sm">
+                      <span>{option.key}. {option.value}</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyToClipboard(`${option.key}. ${option.value}`, "选项")}
+                        className="flex items-center gap-1 text-xs h-6 ml-2 flex-shrink-0"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
                     </div>
                   ))}
                 </div>
