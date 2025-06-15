@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { QuestionInput } from "@/components/QuestionInput";
 import { OCRHistory } from "@/components/OCRHistory";
@@ -150,7 +151,6 @@ export default function Index() {
           <div>
             <OCRHistory 
               history={history} 
-              questionTypeExamples={questionTypeExamples}
               onClearHistory={handleClearHistory}
               onRemoveItem={handleRemoveItem}
               onExportHistory={handleExportHistory}

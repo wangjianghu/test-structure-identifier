@@ -9,7 +9,13 @@ export interface SecureOCRResult {
     questionType: string;
     subject: string;
     confidence: number;
-    features: string[];
+    features: {
+      hasQuestionNumber: boolean;
+      hasOptions: boolean;
+      hasMathSymbols: boolean;
+      hasQuestionWords: boolean;
+      textLength: number;
+    };
   };
   preprocessingSteps: string[];
   processingTime: number;

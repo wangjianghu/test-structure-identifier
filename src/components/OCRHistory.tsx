@@ -14,8 +14,8 @@ import { toast } from "sonner";
 interface OCRHistoryProps {
   history: HistoryItem[];
   onRemoveItem: (id: string) => void;
-  onExport: () => void;
-  onClear: () => void;
+  onExportHistory: () => void;
+  onClearHistory: () => void;
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -23,8 +23,8 @@ const ITEMS_PER_PAGE = 10;
 export function OCRHistory({
   history,
   onRemoveItem,
-  onExport,
-  onClear
+  onExportHistory,
+  onClearHistory
 }: OCRHistoryProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const { user } = useAuth();
@@ -37,7 +37,7 @@ export function OCRHistory({
   const handleExportWithSync = async () => {
     try {
       // 导出本地数据
-      onExport();
+      onExportHistory();
 
       if (!user) {
         toast.success("数据已导出到本地");
@@ -141,7 +141,7 @@ export function OCRHistory({
               <Download className="h-4 w-4 mr-2" />
               导出
             </Button>
-            <Button variant="outline" size="sm" onClick={onClear}>
+            <Button variant="outline" size="sm" onClick={onClearHistory}>
               <Trash2 className="h-4 w-4 mr-2" />
               清空
             </Button>
