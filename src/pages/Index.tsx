@@ -13,7 +13,6 @@ export default function Index() {
   const [questionTypeExample, setQuestionTypeExample] = useState<string>('');
   const { 
     history, 
-    questionTypeExamples,
     addTextToHistory, 
     addImageToHistory, 
     updateHistoryItemAnalysis,
