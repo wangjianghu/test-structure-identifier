@@ -44,7 +44,7 @@ const Index = () => {
         tessedit_ocr_engine_mode: OEM.LSTM_ONLY, // 使用LSTM引擎，对复杂文本效果更好
         preserve_interword_spaces: '1',
         // 数学符号相关优化
-        tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz一二三四五六七八九十零.,()[]{}=+-×÷≤≥≠∞∑∫√²³±∩∪∈∉⊂⊃∅∠∴∵∝∂∆∇φψωαβγδεζηθικλμνξοπρστυφχψω抛物线焦点双曲线渐近线距离已知集合的到线为选择题ABCD<>|_^/\\~`!@#$%&*'';:？。，、（）「」『』《》【】〈〉〖〗', // 包含常用数学符号和中文字符
+        tessedit_char_whitelist: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz一二三四五六七八九十零.,()[]{}=+-×÷≤≥≠∞∑∫√²³±∩∪∈∉⊂⊃∅∠∴∵∝∂∆∇φψωαβγδεζηθικλμνξοπρστυφχψω抛物线焦点双曲线渐近线距离已知集合的到线为选择题ABCD<>|_^/\\~`!@#$%&*'';:？。，、（）「」『』《》【】〈〉〖〗", // 包含常用数学符号和中文字符
         user_defined_dpi: '300' // 提高DPI以获得更好的识别效果
       });
       
