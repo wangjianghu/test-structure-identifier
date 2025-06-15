@@ -16,7 +16,7 @@ export function ConfigHeader({ ocrEnhancedEnabled, onToggle }: ConfigHeaderProps
           <Settings className="h-5 w-5" />
           配置 OCR 增强服务
         </h3>
-        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+        <p className="text-sm text-muted-foreground mt-1 leading-relaxed break-words">
           配置高精度的图像识别服务，提升试题识别准确率。支持 Mistral.ai 和阿里云 OCR。
         </p>
       </div>
