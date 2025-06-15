@@ -36,4 +36,22 @@ export class ImagePreprocessor {
       img.src = URL.createObjectURL(file);
     });
   }
+
+  // Instance method that enhancedOCR.ts expects
+  async preprocessImage(file: File): Promise<File> {
+    const preprocessingSteps: string[] = [];
+    const processedBlob = await ImagePreprocessor.superEnhancedPreprocessing(file, preprocessingSteps);
+    
+    // Convert blob back to File to maintain compatibility
+    return new File([processedBlob], file.name, {
+      type: processedBlob.type,
+      lastModified: Date.now(),
+    });
+  }
+
+  // Instance method that enhancedOCR.ts expects  
+  destroy(): void {
+    // No cleanup needed for this implementation
+    // This method exists for compatibility with the interface expected by enhancedOCR.ts
+  }
 }
