@@ -9,6 +9,57 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      analysis_history: {
+        Row: {
+          analysis_result: Json | null
+          created_at: string
+          file_name: string | null
+          file_size: number | null
+          file_type: string | null
+          id: string
+          input_text: string | null
+          input_time: string
+          input_type: string
+          ocr_result: Json | null
+          output_time: string | null
+          question_type_example: string | null
+          selected_subject: string | null
+          timestamp: string
+        }
+        Insert: {
+          analysis_result?: Json | null
+          created_at?: string
+          file_name?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          input_text?: string | null
+          input_time: string
+          input_type: string
+          ocr_result?: Json | null
+          output_time?: string | null
+          question_type_example?: string | null
+          selected_subject?: string | null
+          timestamp: string
+        }
+        Update: {
+          analysis_result?: Json | null
+          created_at?: string
+          file_name?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          input_text?: string | null
+          input_time?: string
+          input_type?: string
+          ocr_result?: Json | null
+          output_time?: string | null
+          question_type_example?: string | null
+          selected_subject?: string | null
+          timestamp?: string
+        }
+        Relationships: []
+      }
       question_type_examples: {
         Row: {
           created_at: string
