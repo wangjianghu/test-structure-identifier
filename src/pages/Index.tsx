@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Github, Zap, PanelRightOpen, PanelRightClose } from "lucide-react";
+import { Github, Zap, PanelRightOpen, PanelRightClose, ChevronLeft, ChevronRight } from "lucide-react";
 import { parseQuestion, ParsedQuestion } from "@/lib/parser";
 import { AnalysisResult } from "@/components/AnalysisResult";
 import { toast } from "sonner";
@@ -39,7 +39,6 @@ const Index = () => {
     exportHistory 
   } = useOCRHistory();
 
-  // 响应式检测：小屏幕时默认关闭历史记录面板
   useEffect(() => {
     const checkScreenSize = () => {
       if (window.innerWidth < 1024) { // lg breakpoint
@@ -54,7 +53,6 @@ const Index = () => {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  // 修复遮罩层点击处理逻辑
   const handleOverlayClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -62,7 +60,6 @@ const Index = () => {
     setIsHistoryOpen(false);
   }, []);
 
-  // 添加历史面板切换处理
   const handleHistoryToggle = useCallback(() => {
     console.log('切换历史面板状态:', !isHistoryOpen);
     setIsHistoryOpen(!isHistoryOpen);
@@ -417,6 +414,17 @@ const Index = () => {
               />
               
               <div className="w-full fixed inset-y-0 right-0 z-40 bg-background border-l lg:relative lg:w-80 lg:z-auto lg:fixed">
+                {/* 历史面板切换按钮 - 在面板左侧垂直居中 */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleHistoryToggle}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full z-50 h-12 w-6 rounded-r-none rounded-l-md bg-background border border-r-0 shadow-md hover:bg-muted"
+                  style={{ transform: 'translateY(-50%) translateX(-100%)' }}
+                >
+                  {isHistoryOpen ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                </Button>
+                
                 <div className="h-full bg-background">
                   <OCRHistory
                     history={history}
@@ -427,6 +435,19 @@ const Index = () => {
                 </div>
               </div>
             </>
+          )}
+
+          {/* 当历史面板关闭时显示的展开按钮 */}
+          {!isHistoryOpen && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleHistoryToggle}
+              className="fixed right-0 top-1/2 -translate-y-1/2 z-50 h-12 w-6 rounded-l-md rounded-r-none bg-background border border-l-0 shadow-md hover:bg-muted"
+              style={{ transform: 'translateY(-50%)' }}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
           )}
         </div>
       </main>
