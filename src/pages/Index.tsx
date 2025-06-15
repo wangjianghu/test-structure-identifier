@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Github, Zap } from "lucide-react";
@@ -34,27 +33,29 @@ const Index = () => {
       description: "这可能需要一些时间，请稍候。",
     });
     try {
-      const worker = await createWorker('chi_sim', 1, {
+      const worker = await createWorker(['chi_sim', 'eng'], 1, {
         logger: m => console.log(m)
       });
       
-      // 优化OCR设置
-      const allowedChars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+-=(){}[].,;:!?/\\|~`@#$%^&*_<>' + 
-                          '中文汉字一二三四五六七八九十百千万亿零壹贰叁肆伍陆柒捌玖拾佰仟萬億';
-      
+      // 优化OCR设置 - 使用更适合数学公式的参数
       await worker.setParameters({
-        tessedit_char_whitelist: allowedChars,
-        tessedit_pageseg_mode: PSM.SINGLE_BLOCK
+        tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
+        tessedit_ocr_engine_mode: 1, // 使用LSTM OCR引擎
+        preserve_interword_spaces: '1'
       });
       
       const { data: { text } } = await worker.recognize(file);
       
-      // 后处理OCR结果，修复常见识别错误
+      // 改进后处理OCR结果，专门针对数学公式
       let processedText = text
-        .replace(/也\./g, 'B.')  // 修复 "也." -> "B."
-        .replace(/B\s*\.\s*了/g, 'B. 1/2')  // 修复 "B. 了" -> "B. 1/2"  
-        .replace(/(\d+)\s*\.\s*(\d+)/g, '$1.$2')  // 修复数字间距
-        .replace(/\s+/g, ' ')  // 标准化空格
+        .replace(/[，、]/g, ',')  // 标准化逗号
+        .replace(/[（]/g, '(')    // 标准化括号
+        .replace(/[）]/g, ')')    
+        .replace(/[＝]/g, '=')    // 标准化等号
+        .replace(/\s*([A-D])\s*[.\uff0e]\s*/g, '\n$1. ')  // 规范化选项格式
+        .replace(/(\d+)\s*[.\uff0e]\s*/g, '$1. ')  // 规范化题号
+        .replace(/\s+/g, ' ')     // 标准化空格
+        .replace(/\n\s+/g, '\n')  // 清理行首空格
         .trim();
       
       console.log('Original OCR result:', text);
@@ -137,13 +138,9 @@ const Index = () => {
             onImageUpload={handleImageUpload}
             isOcrLoading={isOcrLoading}
             disabled={isOcrLoading || isLoading}
+            onAnalyze={handleAnalyze}
+            isAnalyzing={isLoading}
           />
-          <div className="flex justify-end">
-            <Button onClick={handleAnalyze} disabled={isLoading || isOcrLoading || !inputText} className="w-full sm:w-auto">
-              <Zap className="mr-2 h-4 w-4" />
-              {isLoading ? "分析中..." : "开始分析"}
-            </Button>
-          </div>
         </div>
 
         <div className="mt-8 w-full flex justify-center">
