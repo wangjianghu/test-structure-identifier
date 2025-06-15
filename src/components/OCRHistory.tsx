@@ -241,14 +241,12 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                   <p className="text-sm font-medium mb-1">
                     {item.inputType === 'image' ? 'OCR识别结果:' : '输入内容:'}
                   </p>
-                  <ScrollArea className="max-h-32">
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">
-                      {item.inputType === 'image' ? 
-                        (item.ocrResult.text || "无识别结果") : 
-                        (item.inputText || "无输入内容")
-                      }
-                    </p>
-                  </ScrollArea>
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap break-words h-20 overflow-y-auto border rounded p-2 bg-background">
+                    {item.inputType === 'image' ? 
+                      (item.ocrResult.text || "无识别结果") : 
+                      (item.inputText || "无输入内容")
+                    }
+                  </div>
                 </div>
                 
                 {item.analysisResult && (
