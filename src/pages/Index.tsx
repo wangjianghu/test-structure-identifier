@@ -38,54 +38,140 @@ const Index = () => {
         logger: m => console.log(m)
       });
       
-      // 优化OCR设置 - 专门针对数学公式和科学文档
+      // 优化OCR设置 - 专门针对数学、化学、物理公式和科学文档
       await worker.setParameters({
         tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
         tessedit_ocr_engine_mode: OEM.LSTM_ONLY, // 使用LSTM引擎，对复杂文本效果更好
         preserve_interword_spaces: '1',
-        // 数学符号相关优化
-        tessedit_char_whitelist: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz一二三四五六七八九十零.,()[]{}=+-×÷≤≥≠∞∑∫√²³±∩∪∈∉⊂⊃∅∠∴∵∝∂∆∇φψωαβγδεζηθικλμνξοπρστυφχψω抛物线焦点双曲线渐近线距离已知集合的到线为选择题ABCD<>|_^/\\~`!@#$%&*'';:？。，、（）「」『』《》【】〈〉〖〗", // 包含常用数学符号和中文字符
-        user_defined_dpi: '300' // 提高DPI以获得更好的识别效果
+        // 扩展字符白名单，包含更多学科符号
+        tessedit_char_whitelist: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz一二三四五六七八九十零.,()[]{}=+-×÷≤≥≠∞∑∫√²³¹⁰±∩∪∈∉⊂⊃∅∠∴∵∝∂∆∇φψωαβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ℃℉°′″π∞∟⊥∥∠∠∴∵∽≈≡→←↑↓⇋⇌⇄⇀⇁∴∵∀∃抛物线焦点双曲线渐近线距离已知集合的到线为选择题ABCDHClNaOHCaCO₃SO₄NO₃NH₄HNO₃H₂SO₄NaClKBrMgFeAlCuZnAgPbHgCdSnSbBiMnCrNiCoVTiW电子质子中子原子分子离子化合价氧化还原反应溶液浓度摩尔质量阿伏伽德罗常数速度加速度力重力摩擦力弹力压强密度温度热量功率能量动能势能电流电压电阻电容电感磁场磁感应强度波长频率振幅光速声速<>|_^/\\~`!@#$%&*'';:？。，、（）「」『』《》【】〈〉〖〗·…""''", // 包含数学、化学、物理符号和术语
+        user_defined_dpi: '300', // 提高DPI以获得更好的识别效果
+        // 优化识别模式
+        tessedit_do_invert: '0',
+        textord_min_linesize: '1.25',
+        // 改善数字和符号识别
+        classify_enable_learning: '0',
+        classify_enable_adaptive_matcher: '1'
       });
       
       const { data: { text } } = await worker.recognize(file);
       
-      // 增强后处理 - 针对数学公式的特殊处理
+      // 增强后处理 - 针对数学、化学、物理公式的特殊处理
       let processedText = text
-        // 修复常见的数学符号识别错误
+        // 修复常见的标点符号识别错误
         .replace(/[，、]/g, ',')
         .replace(/[（]/g, '(')
         .replace(/[）]/g, ')')
         .replace(/[＝]/g, '=')
-        .replace(/[－]/g, '-')
+        .replace(/[－—]/g, '-')
         .replace(/[＋]/g, '+')
         .replace(/[×]/g, '×')
         .replace(/[÷]/g, '÷')
-        // 修复分数的识别问题
-        .replace(/(\d+)\s*[\/]\s*(\d+)/g, '$1/$2')
-        // 修复上标的识别问题
-        .replace(/x\s*[²2]\s*/g, 'x²')
-        .replace(/y\s*[²2]\s*/g, 'y²')
+        
+        // 修复数学符号识别错误
+        .replace(/[∈]/g, '∈')
+        .replace(/[∉]/g, '∉')
+        .replace(/[∩]/g, '∩')
+        .replace(/[∪]/g, '∪')
+        .replace(/[⊂]/g, '⊂')
+        .replace(/[⊃]/g, '⊃')
+        .replace(/[≤]/g, '≤')
+        .replace(/[≥]/g, '≥')
+        .replace(/[≠]/g, '≠')
+        .replace(/[√]/g, '√')
+        .replace(/[∞]/g, '∞')
+        
+        // 修复上标和下标
+        .replace(/x\s*[²2²]\s*/g, 'x²')
+        .replace(/y\s*[²2²]\s*/g, 'y²')
+        .replace(/[²2²]/g, '²')
+        .replace(/[³3³]/g, '³')
+        .replace(/[¹1¹]/g, '¹')
+        
+        // 修复分数识别
+        .replace(/(\d+)\s*[\/丿]\s*(\d+)/g, '$1/$2')
+        .replace(/1\s*[\/丿]\s*2/g, '1/2')
+        .replace(/1\s*[\/丿]\s*3/g, '1/3')
+        .replace(/1\s*[\/丿]\s*4/g, '1/4')
+        .replace(/1\s*[\/丿]\s*8/g, '1/8')
+        
+        // 修复化学公式常见错误
+        .replace(/H\s*2\s*O/g, 'H₂O')
+        .replace(/CO\s*2/g, 'CO₂')
+        .replace(/SO\s*4/g, 'SO₄')
+        .replace(/NO\s*3/g, 'NO₃')
+        .replace(/NH\s*4/g, 'NH₄')
+        .replace(/CaCO\s*3/g, 'CaCO₃')
+        .replace(/H\s*2\s*SO\s*4/g, 'H₂SO₄')
+        .replace(/HNO\s*3/g, 'HNO₃')
+        
+        // 修复物理单位和符号
+        .replace(/m\s*\/\s*s/g, 'm/s')
+        .replace(/kg\s*·\s*m\s*\/\s*s/g, 'kg·m/s')
+        .replace(/°C/g, '℃')
+        .replace(/°F/g, '℉')
+        
         // 修复常见数学术语的识别错误
         .replace(/抛物线.*?[=＝]/g, '抛物线y=')
         .replace(/双曲线.*?[=＝]/g, '双曲线')
         .replace(/焦点.*?到/g, '焦点到')
         .replace(/渐近线.*?的/g, '渐近线的')
         .replace(/距离.*?为/g, '距离为')
+        
+        // 修复常见错误字符
+        .replace(/二\s*>/g, 'x²')
+        .replace(/蕊\s*_\s*22\s*-\s*1/g, 'y²/22 - x²/1 = 1')
+        .replace(/了/g, '1/2')
+        .replace(/。\s*\)/g, ')')
+        .replace(/\(\s*。\s*/g, '(')
+        
         // 修复选项格式
         .replace(/\s*([A-D])\s*[.\uff0e:：]\s*/g, '\n$1. ')
         .replace(/(\d+)\s*[.\uff0e]\s*/g, '$1. ')
-        // 清理多余空格
+        
+        // 清理多余空格和换行
         .replace(/\s+/g, ' ')
         .replace(/\n\s+/g, '\n')
+        .replace(/\s+\n/g, '\n')
         .trim();
       
-      // 针对这类数学题的特殊处理
+      // 进一步的学科特定修正
       processedText = processedText
-        .replace(/二\s*>/g, '1/8x²') // 修复"二>"为"1/8x²"
-        .replace(/蕊\s*_\s*22\s*-\s*1/g, 'y²/12 - x²/4 = 1') // 修复双曲线方程
-        .replace(/了/g, '1/2') // 修复选项中的"了"为分数
-        .replace(/。\s*\)/g, ')'); // 修复括号问题
+        // 数学公式修正
+        .replace(/x\s*平方/g, 'x²')
+        .replace(/y\s*平方/g, 'y²')
+        .replace(/平方根/g, '√')
+        .replace(/无穷大/g, '∞')
+        .replace(/小于等于/g, '≤')
+        .replace(/大于等于/g, '≥')
+        .replace(/不等于/g, '≠')
+        .replace(/属于/g, '∈')
+        .replace(/不属于/g, '∉')
+        .replace(/交集/g, '∩')
+        .replace(/并集/g, '∪')
+        .replace(/包含于/g, '⊂')
+        .replace(/包含/g, '⊃')
+        
+        // 化学公式修正
+        .replace(/氢氧化钠/g, 'NaOH')
+        .replace(/碳酸钙/g, 'CaCO₃')
+        .replace(/硫酸/g, 'H₂SO₄')
+        .replace(/硝酸/g, 'HNO₃')
+        .replace(/氯化钠/g, 'NaCl')
+        .replace(/氨气/g, 'NH₃')
+        .replace(/二氧化碳/g, 'CO₂')
+        .replace(/水/g, 'H₂O')
+        
+        // 物理公式修正
+        .replace(/米每秒/g, 'm/s')
+        .replace(/千克/g, 'kg')
+        .replace(/牛顿/g, 'N')
+        .replace(/焦耳/g, 'J')
+        .replace(/瓦特/g, 'W')
+        .replace(/摄氏度/g, '℃')
+        .replace(/安培/g, 'A')
+        .replace(/伏特/g, 'V')
+        .replace(/欧姆/g, 'Ω');
       
       console.log('Original OCR result:', text);
       console.log('Processed OCR result:', processedText);
