@@ -196,7 +196,17 @@ const Index = () => {
                 onQuestionTypeExampleChange={setQuestionTypeExample}
               />
 
-              <QuestionInput />
+              <QuestionInput
+                value={inputText}
+                onChange={handleTextChange}
+                onImagesUpload={handleImagesUpload}
+                uploadedImages={uploadedImages}
+                onRemoveImage={handleRemoveImage}
+                isOcrLoading={isOcrLoading}
+                disabled={isOcrLoading || isLoading}
+                onAnalyze={handleAnalyze}
+                isAnalyzing={isLoading}
+              />
               
               {/* OCR 处理详情显示 */}
               {ocrResults.length > 0 && (

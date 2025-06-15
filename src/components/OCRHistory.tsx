@@ -1,15 +1,7 @@
-import { useState } from "react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
 import { Trash2, Download, FileText, Image, Type, Clock } from "lucide-react";
 import { HistoryItem } from "@/types/ocrHistory";
 import { formatDistanceToNow, format } from "date-fns";
@@ -23,38 +15,7 @@ interface OCRHistoryProps {
   onClear: () => void;
 }
 
-const ITEMS_PER_PAGE = 10;
-
 export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHistoryProps) {
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const totalPages = Math.ceil(history.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentHistory = history.slice(startIndex, endIndex);
-
-  // 重置分页当历史记录变化时
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  // 当历史记录长度变化时，调整当前页
-  if (currentPage > totalPages && totalPages > 0) {
-    setCurrentPage(totalPages);
-  }
-
-  const handleExportWithSync = async () => {
-    try {
-      // 执行原有的导出逻辑
-      onExport();
-
-      // TODO: 当 analysis_exports 表创建成功后，可以添加同步到 Supabase 的功能
-      console.log('导出完成，暂未同步到 Supabase');
-    } catch (error) {
-      console.error('导出过程中出错:', error);
-    }
-  };
-
   if (history.length === 0) {
     return (
       <div className="h-full flex flex-col">
@@ -86,7 +47,7 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
             分析历史记录 ({history.length})
           </h2>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleExportWithSync}>
+            <Button variant="outline" size="sm" onClick={onExport}>
               <Download className="h-4 w-4 mr-2" />
               导出
             </Button>
@@ -99,7 +60,7 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {currentHistory.map((item) => (
+        {history.map((item) => (
           <div key={item.id} className="border rounded-lg p-4 space-y-3 bg-card">
             <div className="flex items-start justify-between">
               <div className="flex gap-3 flex-1">
@@ -239,51 +200,6 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
           </div>
         ))}
       </div>
-
-      {totalPages > 1 && (
-        <div className="p-4 border-t">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious 
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (currentPage > 1) handlePageChange(currentPage - 1);
-                  }}
-                  className={currentPage <= 1 ? "pointer-events-none opacity-50" : ""}
-                />
-              </PaginationItem>
-              
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <PaginationItem key={page}>
-                  <PaginationLink
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handlePageChange(page);
-                    }}
-                    isActive={currentPage === page}
-                  >
-                    {page}
-                  </PaginationLink>
-                </PaginationItem>
-              ))}
-              
-              <PaginationItem>
-                <PaginationNext 
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (currentPage < totalPages) handlePageChange(currentPage + 1);
-                  }}
-                  className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-      )}
     </div>
   );
 }
