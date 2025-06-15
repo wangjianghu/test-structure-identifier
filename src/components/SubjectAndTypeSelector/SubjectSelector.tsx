@@ -11,7 +11,7 @@ interface SubjectSelectorProps {
 export function SubjectSelector({ selectedSubject, onSubjectChange }: SubjectSelectorProps) {
   return (
     <div className="flex items-center gap-3">
-      <Label htmlFor="subject-select" className="text-sm whitespace-nowrap">选择学科：</Label>
+      <Label htmlFor="subject-select" className="text-sm whitespace-nowrap">学科：</Label>
       <Select value={selectedSubject} onValueChange={onSubjectChange}>
         <SelectTrigger id="subject-select" className="w-[116px]">
           <SelectValue placeholder="选择学科" />

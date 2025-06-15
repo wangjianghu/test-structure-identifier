@@ -18,7 +18,7 @@ export function QuestionTypeSelector({
 
   return (
     <div className="flex items-center gap-3">
-      <Label htmlFor="question-type-select" className="text-sm whitespace-nowrap">选择题型：</Label>
+      <Label htmlFor="question-type-select" className="text-sm whitespace-nowrap">题型：</Label>
       <Select 
         value={selectedQuestionType} 
         onValueChange={onQuestionTypeChange}

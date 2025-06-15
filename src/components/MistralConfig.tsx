@@ -138,36 +138,21 @@ export function MistralConfig({ className }: MistralConfigProps) {
       >
         <div className="p-6">
           <div className="space-y-4 mb-6">
-            <div>
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                配置 OCR 增强服务
-              </h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                配置高精度的图像识别服务，提升试题识别准确率。支持 Mistral.ai 和阿里云 OCR。
-              </p>
-            </div>
-          </div>
-
-          {/* OCR 增强开关 */}
-          <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg mb-6">
-            <div className="flex items-center gap-3">
-              {ocrEnhancedEnabled ? (
-                <Power className="h-5 w-5 text-green-600" />
-              ) : (
-                <PowerOff className="h-5 w-5 text-gray-500" />
-              )}
+            <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-medium">启用 OCR 增强</h4>
-                <p className="text-sm text-muted-foreground">
-                  {ocrEnhancedEnabled ? '使用高精度OCR服务识别图片' : '使用内置OCR引擎识别图片'}
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  配置 OCR 增强服务
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  配置高精度的图像识别服务，提升试题识别准确率。支持 Mistral.ai 和阿里云 OCR。
                 </p>
               </div>
+              <Switch
+                checked={ocrEnhancedEnabled}
+                onCheckedChange={setOcrEnhancedEnabled}
+              />
             </div>
-            <Switch
-              checked={ocrEnhancedEnabled}
-              onCheckedChange={setOcrEnhancedEnabled}
-            />
           </div>
           
           {/* 只有在开启OCR增强时才显示配置选项 */}
