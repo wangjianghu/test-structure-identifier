@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Github, Zap } from "lucide-react";
 import { parseQuestion, ParsedQuestion } from "@/lib/parser";
 import { AnalysisResult } from "@/components/AnalysisResult";
-import { createWorker } from "tesseract.js";
+import { createWorker, PSM } from "tesseract.js";
 import { toast } from "sonner";
 import { QuestionInput } from "@/components/QuestionInput";
 
@@ -43,7 +43,7 @@ const Index = () => {
       
       await worker.setParameters({
         tessedit_char_whitelist: allowedChars,
-        tessedit_pageseg_mode: 6
+        tessedit_pageseg_mode: PSM.SINGLE_UNIFORM_BLOCK
       });
       
       const { data: { text } } = await worker.recognize(file);
