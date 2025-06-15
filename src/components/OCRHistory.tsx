@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Download, FileText, Image, Type, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Trash2, Download, FileText, Image, Type, ChevronLeft, ChevronRight } from "lucide-react";
 import { HistoryItem } from "@/types/ocrHistory";
 import { format } from "date-fns";
 import { ImageViewDialog } from "./ImageViewDialog";
@@ -93,6 +93,12 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
     return analysisResult.questionType;
   };
 
+  const formatProcessingTime = (inputTime: Date, outputTime?: Date) => {
+    if (!outputTime) return "处理中...";
+    const processingMs = outputTime.getTime() - inputTime.getTime();
+    return `${(processingMs / 1000).toFixed(1)}s`;
+  };
+
   if (history.length === 0) {
     return (
       <div className="h-full flex flex-col">
@@ -108,12 +114,6 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
       </div>
     );
   }
-
-  const formatProcessingTime = (inputTime: Date, outputTime?: Date) => {
-    if (!outputTime) return "处理中...";
-    const processingMs = outputTime.getTime() - inputTime.getTime();
-    return `${(processingMs / 1000).toFixed(1)}s`;
-  };
 
   return (
     <div className="h-full flex flex-col">
@@ -164,7 +164,7 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                         </Badge>
                       )}
                       
-                      {item.inputType === 'image' && (
+                      {item.inputType === 'image' && item.ocrResult && (
                         <>
                           <Badge variant={item.ocrResult.classification.isQuestion ? "default" : "secondary"}>
                             {item.ocrResult.classification.isQuestion ? "试题" : "非试题"}
@@ -180,14 +180,17 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                     </div>
                     
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                      <Clock className="h-3 w-3" />
-                      <span>输入: {format(item.inputTime, 'HH:mm:ss')}</span>
                       {item.outputTime && (
                         <>
-                          <span>•</span>
                           <span>完成: {format(item.outputTime, 'HH:mm:ss')}</span>
                           <span>•</span>
                           <span>耗时: {formatProcessingTime(item.inputTime, item.outputTime)}</span>
+                        </>
+                      )}
+                      {item.inputType === 'image' && item.ocrResult && (
+                        <>
+                          {item.outputTime && <span>•</span>}
+                          <span>置信度: {(item.ocrResult.classification.confidence * 100).toFixed(1)}%</span>
                         </>
                       )}
                     </div>
@@ -227,7 +230,7 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                 )}
                 
                 {/* 图片输入时：显示OCR结果 */}
-                {item.inputType === 'image' && (
+                {item.inputType === 'image' && item.ocrResult && (
                   <div className="bg-slate-50 dark:bg-slate-900 rounded p-3">
                     <p className="text-sm font-medium mb-1">OCR识别结果:</p>
                     <div className="text-sm text-muted-foreground whitespace-pre-wrap break-words h-20 overflow-y-auto border rounded p-2 bg-background">
@@ -236,7 +239,7 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                   </div>
                 )}
                 
-                {/* 文本输入时：直接显示输入内容 */}
+                {/* 文本输入时：显示输入内容 */}
                 {item.inputType === 'text' && (
                   <div className="bg-slate-50 dark:bg-slate-900 rounded p-3">
                     <p className="text-sm font-medium mb-1">输入内容:</p>
@@ -280,7 +283,7 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                 <ChevronLeft className="h-4 w-4" />
                 上一页
               </Button>
-              <span className="text-sm text-muted-foregrund">
+              <span className="text-sm text-muted-foreground">
                 {currentPage} / {totalPages}
               </span>
               <Button

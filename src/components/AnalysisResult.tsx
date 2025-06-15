@@ -155,29 +155,28 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <h4 className="font-medium text-sm text-muted-foreground">父题信息</h4>
-                <div className="flex gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={copyParentBlock}
-                    className="flex items-center gap-1 text-xs h-7"
-                  >
-                    <Copy className="h-3 w-3" />
-                    复制内容块
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={copyParentInfo}
-                    className="flex items-center gap-1 text-xs h-7"
-                  >
-                    <Copy className="h-3 w-3" />
-                    复制父题信息
-                  </Button>
-                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={copyParentInfo}
+                  className="flex items-center gap-1 text-xs h-7"
+                >
+                  <Copy className="h-3 w-3" />
+                  复制父题信息
+                </Button>
               </div>
               
-              <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+              <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg relative">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={copyParentBlock}
+                  className="absolute top-2 right-2 flex items-center gap-1 text-xs h-7"
+                >
+                  <Copy className="h-3 w-3" />
+                  复制内容块
+                </Button>
+                
                 {result.parentQuestion.number && (
                   <div>
                     <span className="text-sm font-medium">父题题号:</span>
@@ -203,29 +202,28 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
                   <div key={index} className="border rounded-lg p-3 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">子题 {index + 1}</span>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copySubQuestionBlock(subQ)}
-                          className="flex items-center gap-1 text-xs h-7"
-                        >
-                          <Copy className="h-3 w-3" />
-                          复制内容块
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copySubQuestionInfo(subQ)}
-                          className="flex items-center gap-1 text-xs h-7"
-                        >
-                          <Copy className="h-3 w-3" />
-                          复制子题信息
-                        </Button>
-                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copySubQuestionInfo(subQ)}
+                        className="flex items-center gap-1 text-xs h-7"
+                      >
+                        <Copy className="h-3 w-3" />
+                        复制子题信息
+                      </Button>
                     </div>
                     
-                    <div className="space-y-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+                    <div className="space-y-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded relative">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copySubQuestionBlock(subQ)}
+                        className="absolute top-2 right-2 flex items-center gap-1 text-xs h-7"
+                      >
+                        <Copy className="h-3 w-3" />
+                        复制内容块
+                      </Button>
+                      
                       <div>
                         <span className="text-sm font-medium">子题题号:</span>
                         <span className="ml-2 text-sm">({subQ.number})</span>
@@ -270,29 +268,28 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h4 className="font-medium text-sm text-muted-foreground">题目信息</h4>
-              <div className="flex gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={copyQuestionBlock}
-                  className="flex items-center gap-1 text-xs h-7"
-                >
-                  <Copy className="h-3 w-3" />
-                  复制内容块
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={copyQuestionInfo}
-                  className="flex items-center gap-1 text-xs h-7"
-                >
-                  <Copy className="h-3 w-3" />
-                  复制题目信息
-                </Button>
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copyQuestionInfo}
+                className="flex items-center gap-1 text-xs h-7"
+              >
+                <Copy className="h-3 w-3" />
+                复制题目信息
+              </Button>
             </div>
             
-            <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg relative">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copyQuestionBlock}
+                className="absolute top-2 right-2 flex items-center gap-1 text-xs h-7"
+              >
+                <Copy className="h-3 w-3" />
+                复制内容块
+              </Button>
+              
               {result.questionNumber && (
                 <div>
                   <span className="text-sm font-medium">题号:</span>
