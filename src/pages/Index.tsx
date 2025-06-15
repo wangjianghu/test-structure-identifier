@@ -38,6 +38,24 @@ const Index = () => {
     exportHistory 
   } = useOCRHistory();
 
+  // 添加 fallback 方法
+  const fallbackToBuiltinOCR = async (file: File, results: any[], imageHistoryItems: any[]) => {
+    try {
+      const enhancedOCR = new EnhancedOCR();
+      const fallbackResult = await enhancedOCR.processImage(file);
+      results.push(fallbackResult);
+      enhancedOCR.destroy();
+      
+      const historyItem = await addImageToHistory(file, fallbackResult, undefined, selectedSubject, questionTypeExample);
+      imageHistoryItems.push(historyItem);
+    } catch (fallbackErr) {
+      console.error(`内置 OCR 处理图片 ${file.name} 也失败:`, fallbackErr);
+      toast.error(`处理图片 ${file.name} 失败`, {
+        description: "请检查图片质量或稍后重试。",
+      });
+    }
+  }
+
   const handleAnalyze = async () => {
     setIsLoading(true);
     setAnalysisResult(null);
@@ -85,7 +103,7 @@ const Index = () => {
               });
               
               // fallback 到其他OCR
-              await fallbackToOtherOCR(file, results, imageHistoryItems, i);
+              await fallbackToBuiltinOCR(file, results, imageHistoryItems);
             }
           }
         } else if (useAlicloud) {
@@ -194,24 +212,6 @@ const Index = () => {
       setIsOcrLoading(false);
     }
   };
-
-  // 添加 fallback 方法
-  const fallbackToBuiltinOCR = async (file: File, results: any[], imageHistoryItems: any[]) => {
-    try {
-      const enhancedOCR = new EnhancedOCR();
-      const fallbackResult = await enhancedOCR.processImage(file);
-      results.push(fallbackResult);
-      enhancedOCR.destroy();
-      
-      const historyItem = await addImageToHistory(file, fallbackResult, undefined, selectedSubject, questionTypeExample);
-      imageHistoryItems.push(historyItem);
-    } catch (fallbackErr) {
-      console.error(`内置 OCR 处理图片 ${file.name} 也失败:`, fallbackErr);
-      toast.error(`处理图片 ${file.name} 失败`, {
-        description: "请检查图片质量或稍后重试。",
-      });
-    }
-  }
 
   // 处理多图片上传
   const handleImagesUpload = useCallback((newImages: File[]) => {
