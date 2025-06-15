@@ -286,32 +286,30 @@ const Index = () => {
         <div className="h-full flex">
           {/* 左侧：输入和分析区域 */}
           <div className="flex-1 flex flex-col overflow-y-auto">
+            {/* 顶部描述区域 */}
+            <div className="px-6 py-4 text-center bg-slate-50/50 dark:bg-slate-900/20">
+              <p className="text-lg text-muted-foreground max-w-4xl mx-auto">
+                粘贴试题文本或上传图片，即刻获得结构化分析。支持数学、物理、化学、语文、英语等学科的多种题型识别。
+              </p>
+            </div>
+
             <div className="flex-1 p-6">
               <div className="max-w-5xl mx-auto space-y-6">
-                {/* 学科选择区域（包含OCR增强按钮） */}
-                <div className="space-y-4">
-                  <SubjectAndTypeSelector
-                    selectedSubject={selectedSubject}
-                    onSubjectChange={setSelectedSubject}
-                    questionTypeExample={questionTypeExample}
-                    onQuestionTypeExampleChange={setQuestionTypeExample}
-                  />
-                  
-                  {/* OCR 增强配置按钮在下方显示 */}
-                  <div className="flex justify-start">
-                    <MistralConfig />
+                {/* 学科选择和OCR增强配置区域 */}
+                <div className="flex items-end gap-4 mb-6">
+                  <div className="flex-1">
+                    <SubjectAndTypeSelector
+                      selectedSubject={selectedSubject}
+                      onSubjectChange={setSelectedSubject}
+                      questionTypeExample={questionTypeExample}
+                      onQuestionTypeExampleChange={setQuestionTypeExample}
+                    />
                   </div>
+                  <MistralConfig />
                 </div>
 
-                {/* 描述文案 - 左对齐 */}
-                <div className="text-left">
-                  <p className="text-lg text-muted-foreground">
-                    粘贴试题文本或上传图片，即刻获得结构化分析。支持数学、物理、化学、语文、英语等学科的多种题型识别。
-                  </p>
-                </div>
-
-                {/* 输入区域 - 增加顶部间距 */}
-                <div className="space-y-6 mt-8">
+                {/* 输入区域 */}
+                <div className="space-y-4">
                   <QuestionInput
                     value={inputText}
                     onChange={handleTextChange}
