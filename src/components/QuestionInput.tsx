@@ -48,6 +48,33 @@ export function QuestionInput({
     event.target.value = ''; // 清空文件输入
   };
 
+  // 检测编程文本类型
+  const detectProgrammingText = (text: string) => {
+    const patterns = {
+      json: /^\s*[\{\[]/,
+      html: /^\s*<[^>]+>/,
+      css: /[{}].*[;:]/,
+      javascript: /function\s+\w+|var\s+\w+|let\s+\w+|const\s+\w+|=>/,
+      python: /def\s+\w+|import\s+\w+|from\s+\w+\s+import/,
+      sql: /SELECT\s+|INSERT\s+|UPDATE\s+|DELETE\s+|CREATE\s+/i,
+      xml: /^\s*<\?xml|<[^>]+>/
+    };
+
+    for (const [type, pattern] of Object.entries(patterns)) {
+      if (pattern.test(text)) {
+        return type;
+      }
+    }
+    return null;
+  };
+
+  const currentTextType = React.useMemo(() => {
+    if (typeof value === 'string' && value.trim()) {
+      return detectProgrammingText(value);
+    }
+    return null;
+  }, [value]);
+
   return (
     <div className={cn(
       "flex flex-col rounded-md border border-input bg-background shadow-sm",
@@ -61,6 +88,15 @@ export function QuestionInput({
         value={value}
         {...props}
       />
+      
+      {/* 编程文本类型提示 */}
+      {currentTextType && (
+        <div className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 border-t border-blue-200 dark:border-blue-800">
+          <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+            检测到 {currentTextType.toUpperCase()} 代码格式
+          </span>
+        </div>
+      )}
       
       {/* 底部操作栏 */}
       <div className="flex items-center justify-between p-2 border-t bg-slate-50 dark:bg-slate-900/50 rounded-b-md">
@@ -95,26 +131,27 @@ export function QuestionInput({
                     />
                   </div>
                   
-                  {/* 悬停时显示的操作按钮 */}
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center gap-1">
+                  {/* 右上角删除按钮 */}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => onRemoveImage(index)}
+                    className="absolute -top-1 -right-1 h-4 w-4 p-0 bg-red-500 text-white hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    disabled={isOcrLoading || isAnalyzing}
+                  >
+                    <X className="h-2 w-2" />
+                  </Button>
+                  
+                  {/* 中央预览按钮 */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <ImageViewDialog 
                       imageUrl={preview} 
                       fileName={uploadedImages[index]?.name || `图片 ${index + 1}`}
                     >
-                      <Button variant="ghost" size="sm" className="h-4 w-4 p-0 text-white hover:text-blue-200">
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 bg-black/50 text-white hover:bg-black/70 rounded-full">
                         <Eye className="h-3 w-3" />
                       </Button>
                     </ImageViewDialog>
-                    
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => onRemoveImage(index)}
-                      className="h-4 w-4 p-0 text-white hover:text-red-200"
-                      disabled={isOcrLoading || isAnalyzing}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
                   </div>
                 </div>
               ))}

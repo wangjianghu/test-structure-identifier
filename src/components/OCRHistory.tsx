@@ -2,11 +2,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Download, FileText, Image, Type, Clock } from "lucide-react";
+import { Trash2, Download, FileText, Image, Type, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { HistoryItem } from "@/types/ocrHistory";
 import { formatDistanceToNow, format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { ImageViewDialog } from "./ImageViewDialog";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface OCRHistoryProps {
   history: HistoryItem[];
@@ -15,7 +18,61 @@ interface OCRHistoryProps {
   onClear: () => void;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHistoryProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalPages = Math.ceil(history.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentItems = history.slice(startIndex, endIndex);
+
+  const handleExportWithSync = async () => {
+    try {
+      // 导出本地数据
+      onExport();
+      
+      // 同步数据到 Supabase
+      const exportData = history.map(item => ({
+        id: item.id,
+        timestamp: item.timestamp.toISOString(),
+        input_time: item.inputTime.toISOString(),
+        output_time: item.outputTime?.toISOString(),
+        input_type: item.inputType,
+        selected_subject: item.selectedSubject,
+        question_type_example: item.questionTypeExample,
+        input_text: item.inputType === 'text' ? item.inputText : item.inputText,
+        analysis_result: item.analysisResult ? JSON.stringify(item.analysisResult) : null,
+        ocr_result: item.inputType === 'image' ? JSON.stringify(item.ocrResult) : null,
+        file_name: item.inputType === 'image' ? item.originalImage.name : null,
+        file_size: item.inputType === 'image' ? item.originalImage.size : null,
+        file_type: item.inputType === 'image' ? item.originalImage.type : null
+      }));
+
+      // 批量插入到 Supabase (使用 upsert 避免重复)
+      const { error } = await supabase
+        .from('analysis_history')
+        .upsert(exportData, { onConflict: 'id' });
+
+      if (error) {
+        console.error('同步到 Supabase 失败:', error);
+        toast.error("同步到云端失败", {
+          description: "数据已导出到本地，但云端同步失败。",
+        });
+      } else {
+        toast.success("导出并同步成功", {
+          description: `已导出 ${history.length} 条记录并同步到云端。`,
+        });
+      }
+    } catch (error) {
+      console.error('导出过程出错:', error);
+      toast.error("导出失败", {
+        description: "导出过程中发生错误，请稍后重试。",
+      });
+    }
+  };
+
   if (history.length === 0) {
     return (
       <div className="h-full flex flex-col">
@@ -47,7 +104,7 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
             分析历史记录 ({history.length})
           </h2>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={onExport}>
+            <Button variant="outline" size="sm" onClick={handleExportWithSync}>
               <Download className="h-4 w-4 mr-2" />
               导出
             </Button>
@@ -60,7 +117,7 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {history.map((item) => (
+        {currentItems.map((item) => (
           <div key={item.id} className="border rounded-lg p-4 space-y-3 bg-card">
             <div className="flex items-start justify-between">
               <div className="flex gap-3 flex-1">
@@ -149,8 +206,12 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                     ) : (
                       <>
                         <span>输入长度: {item.inputText.length}字符</span>
-                        <span>学科: {item.analysisResult.subject}</span>
-                        <span>题型: {item.analysisResult.questionType}</span>
+                        {item.analysisResult && (
+                          <>
+                            <span>学科: {item.analysisResult.subject}</span>
+                            <span>题型: {item.analysisResult.questionType}</span>
+                          </>
+                        )}
                       </>
                     )}
                   </div>
@@ -200,6 +261,40 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
           </div>
         ))}
       </div>
+
+      {/* 分页控件 */}
+      {totalPages > 1 && (
+        <div className="p-4 border-t bg-background">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              第 {startIndex + 1}-{Math.min(endIndex, history.length)} 条，共 {history.length} 条记录
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                上一页
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {currentPage} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+              >
+                下一页
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
