@@ -5,8 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Download, FileText, Image, Type, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { HistoryItem } from "@/types/ocrHistory";
-import { formatDistanceToNow, format } from "date-fns";
-import { zhCN } from "date-fns/locale";
+import { format } from "date-fns";
 import { ImageViewDialog } from "./ImageViewDialog";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -123,104 +122,80 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
             {currentItems.map((item) => (
               <div key={item.id} className="border rounded-lg p-4 space-y-3 bg-card">
                 <div className="flex items-start justify-between">
-                  <div className="flex gap-3 flex-1">
-                    {item.inputType === 'image' ? (
-                      <ImageViewDialog 
-                        imageUrl={item.imageDataUrl} 
-                        fileName={item.originalImage.name}
-                      >
-                        <img 
-                          src={item.imageDataUrl} 
-                          alt="识别图片" 
-                          className="w-16 h-16 object-cover rounded border flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
-                          title="点击查看大图"
-                        />
-                      </ImageViewDialog>
-                    ) : (
-                      <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded border flex items-center justify-center flex-shrink-0">
-                        <Type className="h-6 w-6 text-muted-foreground" />
-                      </div>
-                    )}
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <Badge variant="outline" className="text-xs">
-                          {item.inputType === 'image' ? (
-                            <>
-                              <Image className="h-3 w-3 mr-1" />
-                              图片输入
-                            </>
-                          ) : (
-                            <>
-                              <Type className="h-3 w-3 mr-1" />
-                              文本输入
-                            </>
-                          )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <Badge variant="outline" className="text-xs">
+                        {item.inputType === 'image' ? (
+                          <>
+                            <Image className="h-3 w-3 mr-1" />
+                            图片输入
+                          </>
+                        ) : (
+                          <>
+                            <Type className="h-3 w-3 mr-1" />
+                            文本输入
+                          </>
+                        )}
+                      </Badge>
+                      
+                      {item.selectedSubject && (
+                        <Badge variant="secondary" className="text-xs">
+                          {item.selectedSubject}
                         </Badge>
-                        
-                        {item.selectedSubject && (
-                          <Badge variant="secondary" className="text-xs">
-                            {item.selectedSubject}
-                          </Badge>
-                        )}
-                        
-                        {item.inputType === 'image' && (
-                          <>
-                            <span className="text-sm font-medium truncate max-w-32">
-                              {item.originalImage.name}
-                            </span>
-                            <Badge variant={item.ocrResult.classification.isQuestion ? "default" : "secondary"}>
-                              {item.ocrResult.classification.isQuestion ? "试题" : "非试题"}
-                            </Badge>
-                          </>
-                        )}
-                        
-                        {item.analysisResult && (
-                          <Badge variant="default">
-                            已分析
-                          </Badge>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                        <Clock className="h-3 w-3" />
-                        <span>输入: {format(item.inputTime, 'HH:mm:ss')}</span>
-                        {item.outputTime && (
-                          <>
-                            <span>•</span>
-                            <span>完成: {format(item.outputTime, 'HH:mm:ss')}</span>
-                            <span>•</span>
-                            <span>耗时: {formatProcessingTime(item.inputTime, item.outputTime)}</span>
-                          </>
-                        )}
-                      </div>
-                      
-                      <p className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(item.timestamp, { addSuffix: true, locale: zhCN })}
-                      </p>
-                      
-                      {/* 根据输入类型显示不同的统计信息 */}
-                      {item.inputType === 'image' ? (
-                        <div className="flex gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
-                          <span>OCR: {item.ocrResult.confidence.toFixed(1)}%</span>
-                          <span>分类: {(item.ocrResult.classification.confidence * 100).toFixed(1)}%</span>
-                          <span>学科: {item.ocrResult.classification.subject}</span>
-                        </div>
-                      ) : (
-                        item.analysisResult && (
-                          <div className="flex gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
-                            <span>学科: {item.analysisResult.subject}</span>
-                            <span>题型: {item.analysisResult.questionType}</span>
-                          </div>
-                        )
                       )}
-
-                      {item.questionTypeExample && (
-                        <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded text-xs">
-                          <span className="font-medium">题型示例:</span> {item.questionTypeExample}
-                        </div>
+                      
+                      {item.inputType === 'image' && (
+                        <>
+                          <Badge variant={item.ocrResult.classification.isQuestion ? "default" : "secondary"}>
+                            {item.ocrResult.classification.isQuestion ? "试题" : "非试题"}
+                          </Badge>
+                        </>
+                      )}
+                      
+                      {item.analysisResult && (
+                        <Badge variant="default">
+                          已分析
+                        </Badge>
                       )}
                     </div>
+                    
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                      <Clock className="h-3 w-3" />
+                      <span>输入: {format(item.inputTime, 'HH:mm:ss')}</span>
+                      {item.outputTime && (
+                        <>
+                          <span>•</span>
+                          <span>完成: {format(item.outputTime, 'HH:mm:ss')}</span>
+                          <span>•</span>
+                          <span>耗时: {formatProcessingTime(item.inputTime, item.outputTime)}</span>
+                        </>
+                      )}
+                    </div>
+
+                    {/* 根据输入类型显示不同的统计信息 */}
+                    {item.inputType === 'image' ? (
+                      <div className="flex gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
+                        <span>OCR: {item.ocrResult.confidence.toFixed(1)}%</span>
+                        <span>分类: {(item.ocrResult.classification.confidence * 100).toFixed(1)}%</span>
+                        <span>学科: {item.ocrResult.classification.subject}</span>
+                        <span className="font-medium truncate max-w-32">
+                          {item.originalImage.name}
+                        </span>
+                      </div>
+                    ) : (
+                      item.analysisResult && (
+                        <div className="flex gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
+                          <span>学科: {item.analysisResult.subject}</span>
+                          <span>题型: {item.analysisResult.questionType}</span>
+                        </div>
+                      )
+                    )}
+
+                    {item.questionTypeExample && (
+                      <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded text-xs">
+                        <span className="font-medium">题型示例:</span> {item.questionTypeExample}
+                      </div>
+                    )}
                   </div>
                   
                   <Button 
@@ -233,30 +208,31 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                   </Button>
                 </div>
                 
-                {/* 图片输入时：先显示图片缩略图，再显示OCR结果 */}
+                {/* 图片输入时：先显示图片缩略图 */}
                 {item.inputType === 'image' && (
-                  <>
-                    <div className="flex items-center justify-center p-2 bg-slate-50 dark:bg-slate-900 rounded">
-                      <ImageViewDialog 
-                        imageUrl={item.imageDataUrl} 
-                        fileName={item.originalImage.name}
-                      >
-                        <img 
-                          src={item.imageDataUrl} 
-                          alt="分析图片" 
-                          className="max-h-32 object-contain rounded border cursor-pointer hover:opacity-80 transition-opacity"
-                          title="点击查看大图"
-                        />
-                      </ImageViewDialog>
+                  <div className="flex justify-center">
+                    <ImageViewDialog 
+                      imageUrl={item.imageDataUrl} 
+                      fileName={item.originalImage.name}
+                    >
+                      <img 
+                        src={item.imageDataUrl} 
+                        alt="分析图片" 
+                        className="w-16 h-16 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                        title="点击查看大图"
+                      />
+                    </ImageViewDialog>
+                  </div>
+                )}
+                
+                {/* 图片输入时：显示OCR结果 */}
+                {item.inputType === 'image' && (
+                  <div className="bg-slate-50 dark:bg-slate-900 rounded p-3">
+                    <p className="text-sm font-medium mb-1">OCR识别结果:</p>
+                    <div className="text-sm text-muted-foreground whitespace-pre-wrap break-words h-20 overflow-y-auto border rounded p-2 bg-background">
+                      {item.ocrResult.text || "无识别结果"}
                     </div>
-                    
-                    <div className="bg-slate-50 dark:bg-slate-900 rounded p-3">
-                      <p className="text-sm font-medium mb-1">OCR识别结果:</p>
-                      <div className="text-sm text-muted-foreground whitespace-pre-wrap break-words h-20 overflow-y-auto border rounded p-2 bg-background">
-                        {item.ocrResult.text || "无识别结果"}
-                      </div>
-                    </div>
-                  </>
+                  </div>
                 )}
                 
                 {/* 文本输入时：直接显示输入内容 */}
@@ -269,8 +245,8 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                   </div>
                 )}
                 
-                {/* 分析结果（两种类型都显示） */}
-                {item.analysisResult && (
+                {/* 图片输入时：显示分析结果 */}
+                {item.inputType === 'image' && item.analysisResult && (
                   <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-3">
                     <p className="text-sm font-medium mb-1">分析结果:</p>
                     <div className="text-sm text-muted-foreground space-y-1">
@@ -305,7 +281,7 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                 <ChevronLeft className="h-4 w-4" />
                 上一页
               </Button>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-muted-foregrund">
                 {currentPage} / {totalPages}
               </span>
               <Button
