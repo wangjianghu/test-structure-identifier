@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Github, ChevronLeft, ChevronRight } from "lucide-react";
@@ -12,6 +11,7 @@ import { OCRHistory } from "@/components/OCRHistory";
 import { useOCRHistory } from "@/hooks/useOCRHistory";
 import { SubjectAndTypeSelector } from "@/components/SubjectAndTypeSelector";
 import { AlicloudOCR, AlicloudOCRResult } from "@/lib/alicloudOCR";
+import { useResponsiveWidth } from "@/hooks/useResponsiveWidth";
 
 const exampleText = "4.已知集合M={-2,-1,0,1,2},N={x|x²-x-2≤0},则M∩(CRN)=(  )\nA.{-2,-1}\nB.{-2}\nC.{-1,0}\nD.{0}";
 
@@ -99,97 +99,79 @@ const Index = () => {
         
         const results: (OCRResult | MistralOCRResult | AlicloudOCRResult)[] = [];
         
-        // 检查配置的OCR服务
-        const useMistral = MistralOCR.isConfigured();
-        const useAlicloud = AlicloudOCR.isConfigured();
+        // 检查OCR增强是否开启
+        const isOCREnhanced = localStorage.getItem('ocr_enhanced_enabled') === 'true';
         
-        if (useMistral) {
-          toast.info("使用 Mistral.ai 高精度识别...", {
-            description: "正在处理图片中的文字和数学公式"
-          });
+        if (isOCREnhanced) {
+          // 检查配置的OCR服务
+          const useMistral = MistralOCR.isConfigured();
+          const useAlicloud = AlicloudOCR.isConfigured();
           
-          const mistralOCR = new MistralOCR();
-          
-          for (let i = 0; i < uploadedImages.length; i++) {
-            const file = uploadedImages[i];
-            toast.info(`正在处理第 ${i + 1} 张图片...`, {
-              description: `文件：${file.name} (Mistral.ai)`,
+          if (useMistral) {
+            toast.info("使用 Mistral.ai 高精度识别...", {
+              description: "正在处理图片中的文字和数学公式"
             });
             
-            try {
-              const result = await mistralOCR.processImage(file);
-              results.push(result);
-              
-              const historyItem = await addImageToHistory(file, result, undefined, selectedSubject, questionTypeExample);
-              imageHistoryItems.push(historyItem);
-            } catch (err) {
-              console.error(`Mistral.ai 处理图片 ${file.name} 失败:`, err);
-              toast.error(`Mistral.ai 处理图片 ${file.name} 失败`, {
-                description: "将尝试其他 OCR 引擎。",
+            const mistralOCR = new MistralOCR();
+            
+            for (let i = 0; i < uploadedImages.length; i++) {
+              const file = uploadedImages[i];
+              toast.info(`正在处理第 ${i + 1} 张图片...`, {
+                description: `文件：${file.name} (Mistral.ai)`,
               });
               
-              // fallback 到其他OCR
-              await fallbackToBuiltinOCR(file, results, imageHistoryItems);
+              try {
+                const result = await mistralOCR.processImage(file);
+                results.push(result);
+                
+                const historyItem = await addImageToHistory(file, result, undefined, selectedSubject, questionTypeExample);
+                imageHistoryItems.push(historyItem);
+              } catch (err) {
+                console.error(`Mistral.ai 处理图片 ${file.name} 失败:`, err);
+                toast.error(`Mistral.ai 处理图片 ${file.name} 失败`, {
+                  description: "将尝试其他 OCR 引擎。",
+                });
+                
+                // fallback 到其他OCR
+                await fallbackToBuiltinOCR(file, results, imageHistoryItems);
+              }
             }
-          }
-        } else if (useAlicloud) {
-          toast.info("使用阿里云 OCR 识别...", {
-            description: "正在处理图片中的文字内容"
-          });
-          
-          const alicloudOCR = new AlicloudOCR();
-          
-          for (let i = 0; i < uploadedImages.length; i++) {
-            const file = uploadedImages[i];
-            toast.info(`正在处理第 ${i + 1} 张图片...`, {
-              description: `文件：${file.name} (阿里云 OCR)`,
+          } else if (useAlicloud) {
+            toast.info("使用阿里云 OCR 识别...", {
+              description: "正在处理图片中的文字内容"
             });
             
-            try {
-              const result = await alicloudOCR.processImage(file);
-              results.push(result);
-              
-              const historyItem = await addImageToHistory(file, result, undefined, selectedSubject, questionTypeExample);
-              imageHistoryItems.push(historyItem);
-            } catch (err) {
-              console.error(`阿里云 OCR 处理图片 ${file.name} 失败:`, err);
-              toast.error(`阿里云 OCR 处理图片 ${file.name} 失败`, {
-                description: "将使用内置 OCR 引擎重试。",
+            const alicloudOCR = new AlicloudOCR();
+            
+            for (let i = 0; i < uploadedImages.length; i++) {
+              const file = uploadedImages[i];
+              toast.info(`正在处理第 ${i + 1} 张图片...`, {
+                description: `文件：${file.name} (阿里云 OCR)`,
               });
               
-              // fallback 到内置 OCR
-              await fallbackToBuiltinOCR(file, results, imageHistoryItems);
+              try {
+                const result = await alicloudOCR.processImage(file);
+                results.push(result);
+                
+                const historyItem = await addImageToHistory(file, result, undefined, selectedSubject, questionTypeExample);
+                imageHistoryItems.push(historyItem);
+              } catch (err) {
+                console.error(`阿里云 OCR 处理图片 ${file.name} 失败:`, err);
+                toast.error(`阿里云 OCR 处理图片 ${file.name} 失败`, {
+                  description: "将使用内置 OCR 引擎重试。",
+                });
+                
+                // fallback 到内置 OCR
+                await fallbackToBuiltinOCR(file, results, imageHistoryItems);
+              }
             }
+          } else {
+            // 没有配置增强OCR服务，使用内置OCR
+            await this.useBuiltinOCR(uploadedImages, results, imageHistoryItems);
           }
         } else {
-          // 使用增强 OCR
-          toast.info("使用内置 OCR 引擎识别...", {
-            description: "正在处理图片中的文字和数学公式"
-          });
-          
-          const enhancedOCR = new EnhancedOCR();
-          
-          for (let i = 0; i < uploadedImages.length; i++) {
-            const file = uploadedImages[i];
-            toast.info(`正在处理第 ${i + 1} 张图片...`, {
-              description: `文件：${file.name}`,
-            });
-            
-            try {
-              const result = await enhancedOCR.processImage(file);
-              results.push(result);
-              
-              const historyItem = await addImageToHistory(file, result, undefined, selectedSubject, questionTypeExample);
-              imageHistoryItems.push(historyItem);
-            } catch (err) {
-              console.error(`处理图片 ${file.name} 失败:`, err);
-              toast.error(`处理图片 ${file.name} 失败`, {
-                description: "请检查图片质量或稍后重试。",
-              });
-            }
-          }
-          
-          enhancedOCR.destroy();
+          // OCR增强未开启，使用内置OCR
+          await this.useBuiltinOCR(uploadedImages, results, imageHistoryItems);
         }
         
         setOcrResults(results);
@@ -205,10 +187,8 @@ const Index = () => {
         
         if (results.length > 0) {
           const avgConfidence = results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
-          // 修复OCR引擎名称显示逻辑
-          const engineName = useMistral ? 'Mistral.ai' : useAlicloud ? '阿里云 OCR' : '内置OCR';
           toast.success(`成功识别 ${results.length} 张图片`, {
-            description: `平均置信度: ${avgConfidence.toFixed(1)}% (${engineName})`,
+            description: `平均置信度: ${avgConfidence.toFixed(1)}%`,
           });
         }
       }
@@ -238,6 +218,36 @@ const Index = () => {
       setIsLoading(false);
       setIsOcrLoading(false);
     }
+  };
+
+  const useBuiltinOCR = async (images: File[], results: any[], imageHistoryItems: any[]) => {
+    toast.info("使用内置 OCR 引擎识别...", {
+      description: "正在处理图片中的文字和数学公式"
+    });
+    
+    const enhancedOCR = new EnhancedOCR();
+    
+    for (let i = 0; i < images.length; i++) {
+      const file = images[i];
+      toast.info(`正在处理第 ${i + 1} 张图片...`, {
+        description: `文件：${file.name} (内置OCR)`,
+      });
+      
+      try {
+        const result = await enhancedOCR.processImage(file);
+        results.push(result);
+        
+        const historyItem = await addImageToHistory(file, result, undefined, selectedSubject, questionTypeExample);
+        imageHistoryItems.push(historyItem);
+      } catch (err) {
+        console.error(`处理图片 ${file.name} 失败:`, err);
+        toast.error(`处理图片 ${file.name} 失败`, {
+          description: "请检查图片质量或稍后重试。",
+        });
+      }
+    }
+    
+    enhancedOCR.destroy();
   };
 
   const handleImagesUpload = useCallback((newImages: File[]) => {
@@ -298,6 +308,8 @@ const Index = () => {
     };
   }, []);
 
+  const historyWidth = useResponsiveWidth();
+
   return (
     <div className="h-screen w-full bg-background text-foreground flex flex-col">
       <header className="w-full flex justify-between items-center p-6 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
@@ -351,27 +363,34 @@ const Index = () => {
                   />
                 </div>
                 
-                {/* OCR 处理详情显示 - 优化显示逻辑 */}
+                {/* OCR 处理详情显示 - 修复引擎名称显示 */}
                 {ocrResults.length > 0 && (
                   <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border">
                     <h3 className="font-semibold mb-2 text-sm">图片 OCR 处理详情</h3>
                     <div className="space-y-3">
                       {ocrResults.map((result, index) => {
-                        // 优化OCR引擎识别逻辑
-                        const isMistral = 'classification' in result && 
-                          result.classification && 
-                          typeof result.classification === 'object' && 
-                          !('features' in result.classification);
+                        // 检查OCR增强是否开启
+                        const isOCREnhanced = localStorage.getItem('ocr_enhanced_enabled') === 'true';
                         
-                        const isAlicloud = 'classification' in result && 
-                          result.classification && 
-                          typeof result.classification === 'object' && 
-                          'processingTime' in result && 
-                          !isMistral;
+                        let engineName = '内置OCR';
                         
-                        const engineName = isMistral ? 'Mistral.ai' : 
-                                         isAlicloud ? '阿里云 OCR' : 
-                                         '内置OCR';
+                        if (isOCREnhanced) {
+                          // 优化OCR引擎识别逻辑
+                          const isMistral = 'classification' in result && 
+                            result.classification && 
+                            typeof result.classification === 'object' && 
+                            !('features' in result.classification);
+                          
+                          const isAlicloud = 'classification' in result && 
+                            result.classification && 
+                            typeof result.classification === 'object' && 
+                            'processingTime' in result && 
+                            !isMistral;
+                          
+                          engineName = isMistral ? 'Mistral.ai' : 
+                                      isAlicloud ? '阿里云 OCR' : 
+                                      '内置OCR';
+                        }
                         
                         return (
                           <div key={index} className="text-xs space-y-1 text-muted-foreground border-l-2 border-blue-200 pl-3">
@@ -408,7 +427,7 @@ const Index = () => {
             </div>
           </div>
 
-          {/* 右侧：历史记录 - 响应式设计 */}
+          {/* 右侧：历史记录 - 响应式设计，调整宽度为30%，最小420px */}
           {isHistoryOpen && (
             <>
               {/* 遮罩层，仅在小屏幕且历史记录面板打开时显示 */}
@@ -417,7 +436,10 @@ const Index = () => {
                 onClick={handleOverlayClick}
               />
               
-              <div className="w-full fixed inset-y-0 right-0 z-40 bg-background border-l lg:relative lg:w-80 lg:z-auto lg:fixed">
+              <div 
+                className="fixed inset-y-0 right-0 z-40 bg-background border-l lg:relative lg:z-auto"
+                style={{ width: historyWidth }}
+              >
                 <div className="h-full bg-background">
                   <OCRHistory
                     history={history}
