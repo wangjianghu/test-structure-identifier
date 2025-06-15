@@ -6,21 +6,23 @@ export class TesseractRecognizer {
   static async multiScaleParallelRecognition(imageBlob: Blob, preprocessingSteps: string[]): Promise<RecognitionResult[]> {
     const results: RecognitionResult[] = [];
     
-    console.log("=== 启动数学公式专用OCR识别 ===");
+    console.log("=== 启动极致数学公式OCR识别 ===");
     
-    // 配置1: 数学公式专用识别
+    // 配置1: 三角函数专用识别 - 最激进配置
     const result1 = await this.recognizeWithConfig(imageBlob, {
-      name: "数学公式专用",
+      name: "三角函数专用",
       languages: ['eng'],
       psm: PSM.SINGLE_BLOCK,
       oem: OEM.LSTM_ONLY,
-      dpi: '600',
+      dpi: '900',
       params: {
-        tessedit_char_whitelist: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz()[]{}=+-×÷°′″√²³¹⁰sincostan ",
+        tessedit_char_whitelist: "0123456789sincotan°=+-×÷()[] ",
         classify_enable_learning: '0',
         classify_enable_adaptive_matcher: '1',
-        textord_noise_normratio: '1',
-        preserve_interword_spaces: '1'
+        textord_noise_normratio: '0.5',
+        preserve_interword_spaces: '1',
+        tessedit_enable_dict_correction: '0',
+        textord_min_linesize: '2.5'
       }
     });
     results.push(result1);
@@ -31,30 +33,63 @@ export class TesseractRecognizer {
       languages: ['eng'],
       psm: PSM.SINGLE_LINE,
       oem: OEM.LSTM_ONLY,
-      dpi: '600',
+      dpi: '900',
       params: {
-        tessedit_char_whitelist: "0123456789°′″sincostan()=+-× ",
-        textord_min_linesize: '1.0',
-        textord_noise_sizelimit: '0.3'
+        tessedit_char_whitelist: "0123456789°′″sincotan()=+-× ",
+        textord_min_linesize: '2.0',
+        textord_noise_sizelimit: '0.2',
+        classify_enable_adaptive_matcher: '1'
       }
     });
     results.push(result2);
 
-    // 配置3: 选择题专用识别
+    // 配置3: 数学表达式专用
     const result3 = await this.recognizeWithConfig(imageBlob, {
-      name: "选择题专用",
+      name: "数学表达式专用",
+      languages: ['eng'],
+      psm: PSM.AUTO,
+      oem: OEM.LSTM_ONLY,
+      dpi: '900',
+      params: {
+        tessedit_char_whitelist: "0123456789sincotan°=+-×÷()[]ABCD ",
+        tessedit_enable_dict_correction: '0',
+        classify_enable_learning: '0',
+        textord_noise_normratio: '0.3'
+      }
+    });
+    results.push(result3);
+
+    // 配置4: 高精度数字识别
+    const result4 = await this.recognizeWithConfig(imageBlob, {
+      name: "高精度数字",
+      languages: ['eng'],
+      psm: PSM.SINGLE_BLOCK,
+      oem: OEM.LSTM_ONLY,
+      dpi: '1200',
+      params: {
+        tessedit_char_whitelist: "0123456789°sincotan=+-×÷() ",
+        classify_enable_learning: '0',
+        textord_min_linesize: '3.0'
+      }
+    });
+    results.push(result4);
+
+    // 配置5: 选择题结构识别
+    const result5 = await this.recognizeWithConfig(imageBlob, {
+      name: "选择题结构",
       languages: ['eng'],
       psm: PSM.AUTO,
       oem: OEM.LSTM_ONLY,
       dpi: '600',
       params: {
-        tessedit_char_whitelist: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz()[]{}=+-×÷°′″√²³¹⁰sincostan.- ",
-        tessedit_enable_dict_correction: '1'
+        tessedit_char_whitelist: "0123456789ABCDsincotan°=+-×÷()[] ",
+        tessedit_enable_dict_correction: '1',
+        preserve_interword_spaces: '1'
       }
     });
-    results.push(result3);
+    results.push(result5);
 
-    console.log("=== 数学公式识别完成 ===");
+    console.log("=== 极致数学公式识别完成 ===");
     return results;
   }
 
