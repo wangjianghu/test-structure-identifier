@@ -15,32 +15,67 @@ export interface ClassificationResult {
 
 export class QuestionClassifier {
   private questionWords = [
+    // 通用问题词汇
     '已知', '设', '求', '证明', '计算', '解', '若', '则', '试', '问',
-    '选择', '判断', '填空', '简答', '分析', '说明', '讨论', '比较'
+    '选择', '判断', '填空', '简答', '分析', '说明', '讨论', '比较',
+    
+    // 数学专用词汇
+    '函数', '方程', '不等式', '集合', '概率', '统计', '几何', '代数',
+    '导数', '积分', '极限', '向量', '矩阵', '三角', '微分',
+    
+    // 物理专用词汇
+    '实验', '测量', '观察', '分析', '推导', '验证', '探究',
+    
+    // 化学专用词汇
+    '反应', '实验', '配平', '计算', '分析', '推断',
+    
+    // 语文专用词汇
+    '阅读', '理解', '分析', '概括', '归纳', '赏析', '评价', '默写',
+    
+    // 英语专用词汇
+    'read', 'choose', 'complete', 'fill', 'translate', 'write',
+    'answer', 'question', 'passage', 'comprehension'
   ];
 
   private mathSymbols = [
     '=', '≠', '≤', '≥', '<', '>', '+', '-', '×', '÷', '∞', '√',
     '²', '³', '¹', '⁰', 'x', 'y', 'z', 'f', 'g', 'π', 'α', 'β', 'γ',
-    '∈', '∉', '∩', '∪', '⊂', '⊃', '∅', '∠', '∴', '∵', '∫', '∑'
+    '∈', '∉', '∩', '∪', '⊂', '⊃', '∅', '∠', '∴', '∵', '∫', '∑',
+    'sin', 'cos', 'tan', 'log', 'ln', 'lim', 'Δ', '∇', '∂'
   ];
 
   private physicsTerms = [
     '力', '速度', '加速度', '质量', '密度', '压强', '功', '功率', '能量',
-    '电流', '电压', '电阻', '磁场', '波长', '频率', '温度', '热量'
+    '电流', '电压', '电阻', '磁场', '波长', '频率', '温度', '热量',
+    '牛顿', '焦耳', '瓦特', '安培', '伏特', '欧姆', '赫兹', '帕斯卡',
+    '动能', '势能', '重力', '摩擦力', '弹力', '浮力', '压力'
   ];
 
   private chemistryTerms = [
     '原子', '分子', '离子', '化合价', '反应', '溶液', '浓度', '摩尔',
-    'H₂O', 'CO₂', 'NaCl', 'H₂SO₄', 'HCl', 'NaOH', 'CaCO₃'
+    'H₂O', 'CO₂', 'NaCl', 'H₂SO₄', 'HCl', 'NaOH', 'CaCO₃',
+    '氧化', '还原', '酸', '碱', '盐', '化学键', '电子', '质子', '中子',
+    '元素', '周期表', '同位素', '化学式', '反应式'
+  ];
+
+  private chineseTerms = [
+    '作者', '文章', '段落', '中心思想', '主旨', '修辞', '表达方式',
+    '诗歌', '古诗', '词', '文言文', '古文', '成语', '词语', '句子',
+    '散文', '小说', '记叙文', '说明文', '议论文', '应用文'
+  ];
+
+  private englishTerms = [
+    'passage', 'reading', 'comprehension', 'grammar', 'vocabulary',
+    'sentence', 'paragraph', 'article', 'essay', 'letter', 'story',
+    'dialogue', 'conversation', 'text', 'word', 'phrase', 'clause'
   ];
 
   private subjectKeywords = {
-    '数学': [...this.mathSymbols, '函数', '方程', '不等式', '集合', '概率', '统计', '几何', '代数'],
-    '物理': [...this.physicsTerms, '牛顿', '焦耳', '瓦特', '安培', '伏特'],
-    '化学': [...this.chemistryTerms, '元素', '周期表', '氧化', '还原', '酸碱'],
-    '语文': ['阅读', '理解', '作者', '文章', '段落', '语法', '修辞', '古诗'],
-    '英语': ['reading', 'passage', 'choose', 'complete', 'translate', 'grammar']
+    '数学': [...this.mathSymbols, '函数', '方程', '不等式', '集合', '概率', '统计', '几何', '代数', '三角', '导数', '积分', '微分', '向量', '矩阵'],
+    '物理': [...this.physicsTerms, '实验', '测量', '公式', '定律', '定理'],
+    '化学': [...this.chemistryTerms, '实验', '元素', '周期表', '化学反应', '化学式'],
+    '语文': [...this.chineseTerms, '阅读', '理解', '作文', '默写', '古诗', '文言文'],
+    '英语': [...this.englishTerms, 'reading', 'writing', 'listening', 'speaking', 'grammar', 'vocabulary']
   };
 
   classify(text: string): ClassificationResult {
@@ -77,12 +112,12 @@ export class QuestionClassifier {
 
     // 5. 文本长度合理性 (权重: 10%)
     maxScore += 10;
-    if (features.textLength > 10 && features.textLength < 1000) {
+    if (features.textLength > 10 && features.textLength < 2000) {
       questionScore += 10;
     }
 
     const confidence = questionScore / maxScore;
-    const isQuestion = confidence > 0.4; // 40%阈值
+    const isQuestion = confidence > 0.3; // 降低阈值到30%
 
     // 确定题型
     let questionType: 'multiple_choice' | 'subjective' | 'unknown' = 'unknown';
@@ -105,22 +140,43 @@ export class QuestionClassifier {
   }
 
   private extractFeatures(text: string): ClassificationResult['features'] {
-    // 题号检测
+    // 题号检测 - 更全面的模式
     const hasQuestionNumber = /^\s*\d+\s*[.\uff0e]/.test(text) || 
-                              /第\s*[一二三四五六七八九十\d]+\s*题/.test(text);
+                              /第\s*[一二三四五六七八九十\d]+\s*题/.test(text) ||
+                              /\(\s*\d+\s*\)/.test(text) ||
+                              /【\s*\d+\s*】/.test(text);
 
-    // 选项检测 (A. B. C. D. 格式)
-    const optionPattern = /[A-D]\s*[.\uff0e]\s*[^A-D\n]{1,}/g;
-    const options = text.match(optionPattern);
-    const hasOptions = options && options.length >= 2;
+    // 选项检测 - 支持更多格式
+    const optionPatterns = [
+      /[A-D]\s*[.\uff0e]\s*[^A-D\n]{1,}/g,  // A. B. C. D.
+      /（[A-D]）/g,                          // （A）（B）（C）（D）
+      /\([A-D]\)/g,                          // (A)(B)(C)(D)
+      /[A-D]：/g                             // A：B：C：D：
+    ];
+    
+    let hasOptions = false;
+    for (const pattern of optionPatterns) {
+      const matches = text.match(pattern);
+      if (matches && matches.length >= 2) {
+        hasOptions = true;
+        break;
+      }
+    }
 
-    // 问题词汇检测
-    const hasQuestionWords = this.questionWords.some(word => text.includes(word));
+    // 问题词汇检测 - 更智能的检测
+    const hasQuestionWords = this.questionWords.some(word => 
+      text.toLowerCase().includes(word.toLowerCase())
+    ) || 
+    /[？?]/.test(text) ||  // 问号检测
+    /填空|空格|______/.test(text) ||  // 填空题特征
+    /选择|判断|计算|解答|证明/.test(text);  // 常见题型词汇
 
-    // 数学符号检测
+    // 学科符号检测 - 扩展检测范围
     const hasMathSymbols = this.mathSymbols.some(symbol => text.includes(symbol)) ||
                            /[xyz]\s*[²³¹⁰]/.test(text) ||
-                           /\d+\s*[×÷]\s*\d+/.test(text);
+                           /\d+\s*[×÷]\s*\d+/.test(text) ||
+                           /[a-z]\([a-z]\)/.test(text) ||  // 函数表示
+                           /\d+[a-z]/.test(text);  // 代数表达式
 
     // 文本长度
     const textLength = text.length;
@@ -135,7 +191,11 @@ export class QuestionClassifier {
   }
 
   private hasSubjectiveIndicators(text: string): boolean {
-    const subjectiveWords = ['证明', '解答', '计算', '求解', '分析', '说明', '讨论'];
+    const subjectiveWords = [
+      '证明', '解答', '计算', '求解', '分析', '说明', '讨论', '推导',
+      '阅读理解', '完形填空', '语法填空', '翻译', '作文', '写作',
+      '实验', '观察', '测量', '探究', '验证', '推断'
+    ];
     return subjectiveWords.some(word => text.includes(word));
   }
 
@@ -144,10 +204,24 @@ export class QuestionClassifier {
     let detectedSubject = '未知';
 
     for (const [subject, keywords] of Object.entries(this.subjectKeywords)) {
-      const matches = keywords.filter(keyword => text.includes(keyword)).length;
+      const matches = keywords.filter(keyword => 
+        text.toLowerCase().includes(keyword.toLowerCase())
+      ).length;
+      
       if (matches > maxMatches) {
         maxMatches = matches;
         detectedSubject = subject;
+      }
+    }
+
+    // 如果没有明确匹配，通过文本特征推断
+    if (detectedSubject === '未知') {
+      if (/[a-zA-Z]{3,}/.test(text) && !/[一二三四五六七八九十]/.test(text)) {
+        detectedSubject = '英语';
+      } else if (/[古诗词文言]/.test(text)) {
+        detectedSubject = '语文';
+      } else if (/[\d+\-×÷=<>≤≥]/.test(text)) {
+        detectedSubject = '数学';
       }
     }
 

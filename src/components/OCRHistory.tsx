@@ -17,28 +17,28 @@ interface OCRHistoryProps {
 export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHistoryProps) {
   if (history.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
+      <div className="h-full flex flex-col">
+        <div className="p-4 border-b">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
             <FileText className="h-5 w-5" />
             分析历史记录
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground text-center py-8">暂无分析记录</p>
-        </CardContent>
-      </Card>
+          </h2>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-muted-foreground text-center">暂无分析记录</p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <div className="h-full flex flex-col">
+      <div className="p-4 border-b">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
             <FileText className="h-5 w-5" />
             分析历史记录 ({history.length})
-          </CardTitle>
+          </h2>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={onExport}>
               <Download className="h-4 w-4 mr-2" />
@@ -50,10 +50,11 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
             </Button>
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4 max-h-96 overflow-y-auto">
+      </div>
+      
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {history.map((item) => (
-          <div key={item.id} className="border rounded-lg p-4 space-y-3">
+          <div key={item.id} className="border rounded-lg p-4 space-y-3 bg-card">
             <div className="flex items-start justify-between">
               <div className="flex gap-3 flex-1">
                 {item.inputType === 'image' ? (
@@ -86,7 +87,7 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                     
                     {item.inputType === 'image' && (
                       <>
-                        <span className="text-sm font-medium truncate">
+                        <span className="text-sm font-medium truncate max-w-32">
                           {item.originalImage.name}
                         </span>
                         <Badge variant={item.ocrResult.classification.isQuestion ? "default" : "secondary"}>
@@ -160,7 +161,7 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
             )}
           </div>
         ))}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

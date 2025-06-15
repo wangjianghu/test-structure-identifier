@@ -151,7 +151,7 @@ const Index = () => {
       </header>
 
       <main className="flex-1 overflow-hidden">
-        <div className="h-full flex flex-col lg:flex-row">
+        <div className="h-full flex">
           {/* 左侧：输入和分析区域 */}
           <div className="flex-1 flex flex-col p-4 overflow-y-auto">
             <div className="text-center mb-6">
@@ -159,7 +159,7 @@ const Index = () => {
                 智能试题结构识别
               </h2>
               <p className="mt-3 text-base text-muted-foreground max-w-2xl mx-auto">
-                粘贴试题文本或上传图片，即刻获得结构化分析。目前支持数学等学科的基础选择题与主观题识别。
+                粘贴试题文本或上传图片，即刻获得结构化分析。支持数学、物理、化学、语文、英语等学科的多种题型识别。
               </p>
             </div>
 
@@ -205,8 +205,8 @@ const Index = () => {
             </div>
           </div>
 
-          {/* 右侧：分析历史记录 */}
-          <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l bg-background/50">
+          {/* 右侧：分析历史记录 - 撑满全屏 */}
+          <div className="w-full flex-1 border-l bg-background/50">
             <OCRHistory
               history={history}
               onRemoveItem={removeItem}
