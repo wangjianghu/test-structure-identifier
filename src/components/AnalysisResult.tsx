@@ -62,18 +62,7 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between w-full">
-              <span>分析结果</span>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={copyAll}
-                className="ml-2"
-              >
-                <Copy className="mr-1 h-4 w-4" />
-                复制全部
-              </Button>
-            </div>
+            <span>分析结果</span>
             <div className="flex items-center gap-2">
               {result.subject && result.subject !== '未知' && (
                 <Badge variant="outline" className="text-xs">
@@ -87,6 +76,14 @@ export function AnalysisResult({ result }: AnalysisResultProps) {
               )}
             </div>
           </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={copyAll}
+          >
+            <Copy className="mr-1 h-4 w-4" />
+            复制全部
+          </Button>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
