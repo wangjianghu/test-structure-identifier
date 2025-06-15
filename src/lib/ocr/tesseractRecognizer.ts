@@ -6,90 +6,126 @@ export class TesseractRecognizer {
   static async multiScaleParallelRecognition(imageBlob: Blob, preprocessingSteps: string[]): Promise<RecognitionResult[]> {
     const results: RecognitionResult[] = [];
     
-    console.log("=== 启动极致数学公式OCR识别 ===");
+    console.log("=== 启动选择题专用OCR识别 ===");
     
-    // 配置1: 三角函数专用识别 - 最激进配置
+    // 配置1: 选择题题号和结构专用识别
     const result1 = await this.recognizeWithConfig(imageBlob, {
-      name: "三角函数专用",
-      languages: ['eng'],
-      psm: PSM.SINGLE_BLOCK,
-      oem: OEM.LSTM_ONLY,
-      dpi: '900',
-      params: {
-        tessedit_char_whitelist: "0123456789sincotan°=+-×÷()[] ",
-        classify_enable_learning: '0',
-        classify_enable_adaptive_matcher: '1',
-        textord_noise_normratio: '0.5',
-        preserve_interword_spaces: '1',
-        tessedit_enable_dict_correction: '0',
-        textord_min_linesize: '2.5'
-      }
-    });
-    results.push(result1);
-
-    // 配置2: 角度符号专用识别
-    const result2 = await this.recognizeWithConfig(imageBlob, {
-      name: "角度符号专用",
-      languages: ['eng'],
-      psm: PSM.SINGLE_LINE,
-      oem: OEM.LSTM_ONLY,
-      dpi: '900',
-      params: {
-        tessedit_char_whitelist: "0123456789°′″sincotan()=+-× ",
-        textord_min_linesize: '2.0',
-        textord_noise_sizelimit: '0.2',
-        classify_enable_adaptive_matcher: '1'
-      }
-    });
-    results.push(result2);
-
-    // 配置3: 数学表达式专用
-    const result3 = await this.recognizeWithConfig(imageBlob, {
-      name: "数学表达式专用",
-      languages: ['eng'],
-      psm: PSM.AUTO,
-      oem: OEM.LSTM_ONLY,
-      dpi: '900',
-      params: {
-        tessedit_char_whitelist: "0123456789sincotan°=+-×÷()[]ABCD ",
-        tessedit_enable_dict_correction: '0',
-        classify_enable_learning: '0',
-        textord_noise_normratio: '0.3'
-      }
-    });
-    results.push(result3);
-
-    // 配置4: 高精度数字识别
-    const result4 = await this.recognizeWithConfig(imageBlob, {
-      name: "高精度数字",
-      languages: ['eng'],
-      psm: PSM.SINGLE_BLOCK,
-      oem: OEM.LSTM_ONLY,
-      dpi: '1200',
-      params: {
-        tessedit_char_whitelist: "0123456789°sincotan=+-×÷() ",
-        classify_enable_learning: '0',
-        textord_min_linesize: '3.0'
-      }
-    });
-    results.push(result4);
-
-    // 配置5: 选择题结构识别
-    const result5 = await this.recognizeWithConfig(imageBlob, {
-      name: "选择题结构",
+      name: "选择题结构专用",
       languages: ['eng'],
       psm: PSM.AUTO,
       oem: OEM.LSTM_ONLY,
       dpi: '600',
       params: {
-        tessedit_char_whitelist: "0123456789ABCDsincotan°=+-×÷()[] ",
+        tessedit_char_whitelist: "0123456789ABCDabcd.()°sincotan=+-×÷ ",
+        classify_enable_learning: '0',
+        classify_enable_adaptive_matcher: '1',
+        textord_noise_normratio: '0.3',
+        preserve_interword_spaces: '1',
+        tessedit_enable_dict_correction: '0',
+        textord_min_linesize: '2.0',
+        textord_tabfind_find_tables: '1'
+      }
+    });
+    results.push(result1);
+
+    // 配置2: 三角函数和角度符号超高精度识别
+    const result2 = await this.recognizeWithConfig(imageBlob, {
+      name: "三角函数超精度",
+      languages: ['eng'],
+      psm: PSM.SINGLE_BLOCK,
+      oem: OEM.LSTM_ONLY,
+      dpi: '1200',
+      params: {
+        tessedit_char_whitelist: "0123456789sincotan°=+-×÷()ABCDabcd ",
+        classify_enable_learning: '0',
+        classify_enable_adaptive_matcher: '1',
+        textord_noise_normratio: '0.2',
+        preserve_interword_spaces: '1',
+        tessedit_enable_dict_correction: '0',
+        textord_min_linesize: '3.0',
+        tessedit_char_blacklist: '1Il|!',
+        load_system_dawg: '0',
+        load_freq_dawg: '0'
+      }
+    });
+    results.push(result2);
+
+    // 配置3: 选项字母专用识别 (A B C D)
+    const result3 = await this.recognizeWithConfig(imageBlob, {
+      name: "选项字母专用",
+      languages: ['eng'],
+      psm: PSM.SINGLE_LINE,
+      oem: OEM.LSTM_ONLY,
+      dpi: '800',
+      params: {
+        tessedit_char_whitelist: "ABCDabcd0123456789°sincotan=+-×÷() ",
+        classify_enable_learning: '0',
+        textord_min_linesize: '2.5',
+        textord_noise_sizelimit: '0.1',
+        classify_enable_adaptive_matcher: '1',
+        tessedit_enable_dict_correction: '0',
+        tessedit_char_blacklist: '史了一'
+      }
+    });
+    results.push(result3);
+
+    // 配置4: 数学表达式完整识别
+    const result4 = await this.recognizeWithConfig(imageBlob, {
+      name: "数学表达式完整",
+      languages: ['eng'],
+      psm: PSM.AUTO,
+      oem: OEM.LSTM_ONLY,
+      dpi: '900',
+      params: {
+        tessedit_char_whitelist: "0123456789sincotan°=+-×÷()[]ABCDabcd. ",
         tessedit_enable_dict_correction: '1',
-        preserve_interword_spaces: '1'
+        classify_enable_learning: '0',
+        textord_noise_normratio: '0.4',
+        preserve_interword_spaces: '1',
+        textord_tabfind_find_tables: '1'
+      }
+    });
+    results.push(result4);
+
+    // 配置5: 混合内容识别 (包含中文字符可能性)
+    const result5 = await this.recognizeWithConfig(imageBlob, {
+      name: "混合内容识别",
+      languages: ['eng', 'chi_sim'],
+      psm: PSM.AUTO,
+      oem: OEM.LSTM_ONLY,
+      dpi: '600',
+      params: {
+        tessedit_char_whitelist: "0123456789ABCDabcdsincotan°=+-×÷()[] ",
+        tessedit_enable_dict_correction: '1',
+        preserve_interword_spaces: '1',
+        textord_min_linesize: '2.0',
+        tessedit_char_blacklist: '史了一'
       }
     });
     results.push(result5);
 
-    console.log("=== 极致数学公式识别完成 ===");
+    // 配置6: 极简字符集高置信度识别
+    const result6 = await this.recognizeWithConfig(imageBlob, {
+      name: "极简高置信度",
+      languages: ['eng'],
+      psm: PSM.SINGLE_BLOCK,
+      oem: OEM.LSTM_ONLY,
+      dpi: '1000',
+      params: {
+        tessedit_char_whitelist: "0123456789ABCDsincotan°=+-×÷() ",
+        classify_enable_learning: '0',
+        classify_enable_adaptive_matcher: '1',
+        textord_noise_normratio: '0.1',
+        tessedit_enable_dict_correction: '0',
+        textord_min_linesize: '3.5',
+        load_system_dawg: '0',
+        load_freq_dawg: '0',
+        load_unambig_dawg: '0'
+      }
+    });
+    results.push(result6);
+
+    console.log("=== 选择题专用OCR识别完成 ===");
     return results;
   }
 
@@ -117,9 +153,10 @@ export class TesseractRecognizer {
       const processingTime = Date.now() - startTime;
       
       console.log(`${config.name} 识别完成:`, {
-        文本: text,
+        原始文本: text,
         置信度: confidence.toFixed(1) + '%',
-        耗时: processingTime + 'ms'
+        耗时: processingTime + 'ms',
+        文本长度: text.length
       });
       
       return { text, confidence, config: config.name };
