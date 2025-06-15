@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 import { EnhancedOCR, OCRResult } from "@/lib/enhancedOCR";
 import { EnhancedOCRv2, EnhancedOCRResult } from "@/lib/enhancedOCRv2";
+import { EnhancedOCRv3, EnhancedOCRv3Result } from "@/lib/enhancedOCRv3";
 import { MistralOCR, MistralOCRResult } from "@/lib/mistralOCR";
 import { AlicloudOCR, AlicloudOCRResult } from "@/lib/alicloudOCR";
 
@@ -11,10 +12,10 @@ export class OCRProcessor {
     questionTypeExample: string,
     addImageToHistory: (file: File, result: any, undefined: any, subject: string, example: string) => Promise<any>
   ): Promise<{
-    results: (OCRResult | EnhancedOCRResult | MistralOCRResult | AlicloudOCRResult)[];
+    results: (OCRResult | EnhancedOCRResult | EnhancedOCRv3Result | MistralOCRResult | AlicloudOCRResult)[];
     imageHistoryItems: any[];
   }> {
-    const results: (OCRResult | EnhancedOCRResult | MistralOCRResult | AlicloudOCRResult)[] = [];
+    const results: (OCRResult | EnhancedOCRResult | EnhancedOCRv3Result | MistralOCRResult | AlicloudOCRResult)[] = [];
     const imageHistoryItems: any[] = [];
 
     if (images.length === 0) {
@@ -22,7 +23,7 @@ export class OCRProcessor {
     }
 
     toast.info("开始处理上传的图片...", {
-      description: `正在使用增强算法识别 ${images.length} 张图片中的文字内容。`,
+      description: `正在使用最新增强算法识别 ${images.length} 张图片中的文字内容。`,
     });
 
     const isOCREnhanced = localStorage.getItem('ocr_enhanced_enabled') === 'true';
@@ -36,7 +37,8 @@ export class OCRProcessor {
       } else if (useAlicloud) {
         await this.processAlicloudOCR(images, results, imageHistoryItems, addImageToHistory, selectedSubject, questionTypeExample);
       } else {
-        await this.processEnhancedOCRv2(images, results, imageHistoryItems, addImageToHistory, selectedSubject, questionTypeExample);
+        // 优先使用最新的增强OCR v3
+        await this.processEnhancedOCRv3(images, results, imageHistoryItems, addImageToHistory, selectedSubject, questionTypeExample);
       }
     } else {
       await this.processBuiltinOCR(images, results, imageHistoryItems, addImageToHistory, selectedSubject, questionTypeExample);
@@ -45,14 +47,56 @@ export class OCRProcessor {
     if (results.length > 0) {
       const avgConfidence = results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
       toast.success(`成功识别 ${results.length} 张图片`, {
-        description: `平均置信度: ${avgConfidence.toFixed(1)}%，使用了增强算法`,
+        description: `平均置信度: ${avgConfidence.toFixed(1)}%，使用了数学专用增强算法`,
       });
     }
 
     return { results, imageHistoryItems };
   }
 
-  // 新增：增强OCR v2处理
+  // 新增：增强OCR v3处理（数学专用）
+  private async processEnhancedOCRv3(
+    images: File[], 
+    results: any[], 
+    imageHistoryItems: any[], 
+    addImageToHistory: any,
+    selectedSubject: string,
+    questionTypeExample: string
+  ) {
+    toast.info("使用增强OCR v3算法识别...", {
+      description: "正在应用数学试题专用图像预处理和多引擎识别"
+    });
+
+    const enhancedOCRv3 = new EnhancedOCRv3();
+
+    for (let i = 0; i < images.length; i++) {
+      const file = images[i];
+      toast.info(`正在处理第 ${i + 1} 张图片...`, {
+        description: `文件：${file.name} (增强OCR v3 - 数学专用)`,
+      });
+
+      try {
+        const result = await enhancedOCRv3.processImage(file);
+        results.push(result);
+        const historyItem = await addImageToHistory(file, result, undefined, selectedSubject, questionTypeExample);
+        imageHistoryItems.push(historyItem);
+        
+        toast.success(`第 ${i + 1} 张图片处理完成`, {
+          description: `检测到 ${result.advancedMetrics.mathSymbolsDetected} 个数学符号，${result.advancedMetrics.chineseCharactersDetected} 个中文字符，置信度: ${result.confidence.toFixed(1)}%`,
+        });
+      } catch (err) {
+        console.error(`增强OCR v3 处理图片 ${file.name} 失败:`, err);
+        toast.error(`增强OCR v3 处理图片 ${file.name} 失败`, {
+          description: "将使用增强OCR v2重试。",
+        });
+        await this.fallbackToEnhancedOCRv2(file, results, imageHistoryItems, addImageToHistory, selectedSubject, questionTypeExample);
+      }
+    }
+
+    enhancedOCRv3.destroy();
+  }
+
+  // 增强OCR v2处理
   private async processEnhancedOCRv2(
     images: File[], 
     results: any[], 
@@ -198,6 +242,29 @@ export class OCRProcessor {
     }
 
     enhancedOCR.destroy();
+  }
+
+  // 新增：回退到增强OCR v2
+  private async fallbackToEnhancedOCRv2(
+    file: File, 
+    results: any[], 
+    imageHistoryItems: any[], 
+    addImageToHistory: any,
+    selectedSubject: string,
+    questionTypeExample: string
+  ) {
+    try {
+      const enhancedOCRv2 = new EnhancedOCRv2();
+      const fallbackResult = await enhancedOCRv2.processImage(file);
+      results.push(fallbackResult);
+      enhancedOCRv2.destroy();
+      
+      const historyItem = await addImageToHistory(file, fallbackResult, undefined, selectedSubject, questionTypeExample);
+      imageHistoryItems.push(historyItem);
+    } catch (fallbackErr) {
+      console.error(`增强OCR v2 处理图片 ${file.name} 也失败:`, fallbackErr);
+      await this.fallbackToBuiltinOCR(file, results, imageHistoryItems, addImageToHistory, selectedSubject, questionTypeExample);
+    }
   }
 
   private async fallbackToBuiltinOCR(
