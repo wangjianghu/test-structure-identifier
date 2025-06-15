@@ -2,11 +2,12 @@
 import { OCRResult } from "@/lib/enhancedOCR";
 import { EnhancedOCRResult } from "@/lib/enhancedOCRv2";
 import { EnhancedOCRv3Result } from "@/lib/enhancedOCRv3";
+import { EnhancedOCRv4Result } from "@/lib/enhancedOCRv4";
 import { MistralOCRResult } from "@/lib/mistralOCR";
 import { AlicloudOCRResult } from "@/lib/alicloudOCR";
 
 interface OCRResultsDisplayProps {
-  ocrResults: (OCRResult | EnhancedOCRResult | EnhancedOCRv3Result | MistralOCRResult | AlicloudOCRResult)[];
+  ocrResults: (OCRResult | EnhancedOCRResult | EnhancedOCRv3Result | EnhancedOCRv4Result | MistralOCRResult | AlicloudOCRResult)[];
 }
 
 export function OCRResultsDisplay({ ocrResults }: OCRResultsDisplayProps) {
@@ -24,20 +25,27 @@ export function OCRResultsDisplay({ ocrResults }: OCRResultsDisplayProps) {
           let engineName = '内置OCR';
           let isEnhancedV2 = false;
           let isEnhancedV3 = false;
+          let isEnhancedV4 = false;
           
           if (isOCREnhanced) {
+            // 检测是否为增强OCR v4结果
+            isEnhancedV4 = 'algorithmUsed' in result && 
+                          result.algorithmUsed && 
+                          result.algorithmUsed.includes('Enhanced OCR v4');
+            
             // 检测是否为增强OCR v3结果
-            isEnhancedV3 = 'advancedMetrics' in result && 
+            isEnhancedV3 = !isEnhancedV4 && 'advancedMetrics' in result && 
                           result.advancedMetrics && 
                           'mathSymbolsDetected' in result.advancedMetrics;
             
             // 检测是否为增强OCR v2结果
-            isEnhancedV2 = 'advancedMetrics' in result && 
+            isEnhancedV2 = !isEnhancedV4 && !isEnhancedV3 && 'advancedMetrics' in result && 
                           result.advancedMetrics && 
-                          !isEnhancedV3 && 
                           'textRegionsDetected' in result.advancedMetrics;
             
-            if (isEnhancedV3) {
+            if (isEnhancedV4) {
+              engineName = '增强OCR v4 (多算法融合)';
+            } else if (isEnhancedV3) {
               engineName = '增强OCR v3 (数学专用)';
             } else if (isEnhancedV2) {
               engineName = '增强OCR v2';
@@ -68,8 +76,36 @@ export function OCRResultsDisplay({ ocrResults }: OCRResultsDisplayProps) {
               <div>题型: {result.classification?.questionType || 'unknown'}</div>
               <div>分类置信度: {result.classification ? (result.classification.confidence * 100).toFixed(1) : 0}%</div>
               
+              {/* 显示增强OCR v4的特殊指标 */}
+              {isEnhancedV4 && 'advancedMetrics' in result && result.advancedMetrics && 'multiModalScore' in result.advancedMetrics && (
+                <div className="mt-2 pt-2 border-t border-gray-200">
+                  <div className="font-medium text-green-600">多算法融合指标:</div>
+                  <div>文字区域检测: {result.advancedMetrics.textRegionsDetected} 个</div>
+                  <div>数学符号检测: {result.advancedMetrics.mathSymbolsDetected} 个</div>
+                  <div>分数线检测: {result.advancedMetrics.fractionLinesDetected} 条</div>
+                  <div>括号检测: {result.advancedMetrics.bracketsDetected} 对</div>
+                  <div>中文字符检测: {result.advancedMetrics.chineseCharactersDetected} 个</div>
+                  <div>版面分析得分: {result.advancedMetrics.layoutAnalysisScore.toFixed(1)}</div>
+                  <div>Transformer置信度: {result.advancedMetrics.transformerConfidence.toFixed(1)}%</div>
+                  <div>多模态融合得分: {result.advancedMetrics.multiModalScore.toFixed(1)}</div>
+                  <div>倾斜角度矫正: {result.advancedMetrics.skewAngleCorrected.toFixed(2)}°</div>
+                  <div>二值化方法: {result.advancedMetrics.binarizationMethod}</div>
+                  {isEnhancedV4 && 'detectionResults' in result && result.detectionResults && (
+                    <div className="mt-1">
+                      <div>检测到文本块: {result.detectionResults.textBlocks.length} 个</div>
+                      {result.detectionResults.layoutStructure.questionNumber && (
+                        <div>题目编号: {result.detectionResults.layoutStructure.questionNumber}</div>
+                      )}
+                      {result.detectionResults.layoutStructure.options && result.detectionResults.layoutStructure.options.length > 0 && (
+                        <div>选项数量: {result.detectionResults.layoutStructure.options.length} 个</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+              
               {/* 显示增强OCR v3的特殊指标 */}
-              {isEnhancedV3 && 'advancedMetrics' in result && result.advancedMetrics && 'mathSymbolsDetected' in result.advancedMetrics && (
+              {isEnhancedV3 && 'advancedMetrics' in result && result.advancedMetrics && 'mathSymbolsDetected' in result.advancedMetrics && !('multiModalScore' in result.advancedMetrics) && (
                 <div className="mt-2 pt-2 border-t border-gray-200">
                   <div className="font-medium text-purple-600">数学专用算法指标:</div>
                   <div>文字区域检测: {result.advancedMetrics.textRegionsDetected} 个</div>
@@ -99,7 +135,21 @@ export function OCRResultsDisplay({ ocrResults }: OCRResultsDisplayProps) {
       </div>
       
       {/* 增强算法说明 */}
-      {ocrResults.some(result => 'advancedMetrics' in result && result.advancedMetrics && 'mathSymbolsDetected' in result.advancedMetrics) && (
+      {ocrResults.some(result => 'algorithmUsed' in result && result.algorithmUsed && result.algorithmUsed.includes('Enhanced OCR v4')) && (
+        <div className="mt-3 p-2 bg-green-50 dark:bg-green-950/20 rounded text-xs">
+          <div className="font-medium text-green-600 mb-1">增强OCR v4多算法融合优势:</div>
+          <ul className="text-green-600 space-y-0.5">
+            <li>• <strong>PaddleOCR启发</strong>：DB++文本检测算法，精准定位文本区域</li>
+            <li>• <strong>TrOCR启发</strong>：Vision Transformer架构，端到端识别</li>
+            <li>• <strong>im2markup启发</strong>：注意力机制，专用数学公式识别</li>
+            <li>• <strong>LayoutLMv3启发</strong>：多模态理解，智能版面分析</li>
+            <li>• <strong>智能融合</strong>：多算法结果综合评估，选择最优结果</li>
+            <li>• <strong>结构化输出</strong>：题号、选项、公式智能分离提取</li>
+          </ul>
+        </div>
+      )}
+      
+      {ocrResults.some(result => 'advancedMetrics' in result && result.advancedMetrics && 'mathSymbolsDetected' in result.advancedMetrics && !('multiModalScore' in result.advancedMetrics)) && (
         <div className="mt-3 p-2 bg-purple-50 dark:bg-purple-950/20 rounded text-xs">
           <div className="font-medium text-purple-600 mb-1">增强OCR v3数学专用算法优势:</div>
           <ul className="text-purple-600 space-y-0.5">
