@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Github, Zap } from "lucide-react";
@@ -39,8 +38,11 @@ const Index = () => {
       });
       
       // 优化OCR设置
+      const allowedChars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+-=(){}[].,;:!?/\\|~`@#$%^&*_<>' + 
+                          '中文汉字一二三四五六七八九十百千万亿零壹贰叁肆伍陆柒捌玖拾佰仟萬億';
+      
       await worker.setParameters({
-        tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+-=(){}[].,;:!?/\\|~`@#$%^&*_<>""''中文汉字一二三四五六七八九十百千万亿零壹贰叁肆伍陆柒捌玖拾佰仟萬億',
+        tessedit_char_whitelist: allowedChars,
         tessedit_pageseg_mode: '6'
       });
       
