@@ -199,25 +199,21 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                         {formatDistanceToNow(item.timestamp, { addSuffix: true, locale: zhCN })}
                       </p>
                       
-                      <div className="flex gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
-                        {item.inputType === 'image' ? (
-                          <>
-                            <span>OCR: {item.ocrResult.confidence.toFixed(1)}%</span>
-                            <span>分类: {(item.ocrResult.classification.confidence * 100).toFixed(1)}%</span>
-                            <span>学科: {item.ocrResult.classification.subject}</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>输入长度: {item.inputText.length}字符</span>
-                            {item.analysisResult && (
-                              <>
-                                <span>学科: {item.analysisResult.subject}</span>
-                                <span>题型: {item.analysisResult.questionType}</span>
-                              </>
-                            )}
-                          </>
-                        )}
-                      </div>
+                      {/* 根据输入类型显示不同的统计信息 */}
+                      {item.inputType === 'image' ? (
+                        <div className="flex gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
+                          <span>OCR: {item.ocrResult.confidence.toFixed(1)}%</span>
+                          <span>分类: {(item.ocrResult.classification.confidence * 100).toFixed(1)}%</span>
+                          <span>学科: {item.ocrResult.classification.subject}</span>
+                        </div>
+                      ) : (
+                        item.analysisResult && (
+                          <div className="flex gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
+                            <span>学科: {item.analysisResult.subject}</span>
+                            <span>题型: {item.analysisResult.questionType}</span>
+                          </div>
+                        )
+                      )}
 
                       {item.questionTypeExample && (
                         <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded text-xs">
@@ -237,18 +233,43 @@ export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHist
                   </Button>
                 </div>
                 
-                <div className="bg-slate-50 dark:bg-slate-900 rounded p-3">
-                  <p className="text-sm font-medium mb-1">
-                    {item.inputType === 'image' ? 'OCR识别结果:' : '输入内容:'}
-                  </p>
-                  <div className="text-sm text-muted-foreground whitespace-pre-wrap break-words h-20 overflow-y-auto border rounded p-2 bg-background">
-                    {item.inputType === 'image' ? 
-                      (item.ocrResult.text || "无识别结果") : 
-                      (item.inputText || "无输入内容")
-                    }
-                  </div>
-                </div>
+                {/* 图片输入时：先显示图片缩略图，再显示OCR结果 */}
+                {item.inputType === 'image' && (
+                  <>
+                    <div className="flex items-center justify-center p-2 bg-slate-50 dark:bg-slate-900 rounded">
+                      <ImageViewDialog 
+                        imageUrl={item.imageDataUrl} 
+                        fileName={item.originalImage.name}
+                      >
+                        <img 
+                          src={item.imageDataUrl} 
+                          alt="分析图片" 
+                          className="max-h-32 object-contain rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                          title="点击查看大图"
+                        />
+                      </ImageViewDialog>
+                    </div>
+                    
+                    <div className="bg-slate-50 dark:bg-slate-900 rounded p-3">
+                      <p className="text-sm font-medium mb-1">OCR识别结果:</p>
+                      <div className="text-sm text-muted-foreground whitespace-pre-wrap break-words h-20 overflow-y-auto border rounded p-2 bg-background">
+                        {item.ocrResult.text || "无识别结果"}
+                      </div>
+                    </div>
+                  </>
+                )}
                 
+                {/* 文本输入时：直接显示输入内容 */}
+                {item.inputType === 'text' && (
+                  <div className="bg-slate-50 dark:bg-slate-900 rounded p-3">
+                    <p className="text-sm font-medium mb-1">输入内容:</p>
+                    <div className="text-sm text-muted-foreground whitespace-pre-wrap break-words h-20 overflow-y-auto border rounded p-2 bg-background">
+                      {item.inputText || "无输入内容"}
+                    </div>
+                  </div>
+                )}
+                
+                {/* 分析结果（两种类型都显示） */}
                 {item.analysisResult && (
                   <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-3">
                     <p className="text-sm font-medium mb-1">分析结果:</p>
