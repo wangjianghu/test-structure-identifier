@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Github, Zap } from "lucide-react";
@@ -7,9 +6,11 @@ import { AnalysisResult } from "@/components/AnalysisResult";
 import { toast } from "sonner";
 import { QuestionInput } from "@/components/QuestionInput";
 import { EnhancedOCR, OCRResult } from "@/lib/enhancedOCR";
+import { MistralOCR, MistralOCRResult } from "@/lib/mistralOCR";
 import { OCRHistory } from "@/components/OCRHistory";
 import { useOCRHistory } from "@/hooks/useOCRHistory";
 import { SubjectAndTypeSelector } from "@/components/SubjectAndTypeSelector";
+import { MistralConfig } from "@/components/MistralConfig";
 
 const exampleText = "4.已知集合M={-2,-1,0,1,2},N={x|x²-x-2≤0},则M∩(CRN)=(  )\nA.{-2,-1}\nB.{-2}\nC.{-1,0}\nD.{0}";
 
@@ -18,7 +19,7 @@ const Index = () => {
   const [analysisResult, setAnalysisResult] = useState<ParsedQuestion | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isOcrLoading, setIsOcrLoading] = useState(false);
-  const [ocrResults, setOcrResults] = useState<OCRResult[]>([]);
+  const [ocrResults, setOcrResults] = useState<(OCRResult | MistralOCRResult)[]>([]);
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   
   // 新增状态
@@ -51,36 +52,83 @@ const Index = () => {
           description: `正在识别 ${uploadedImages.length} 张图片中的文字内容。`,
         });
         
-        const results: OCRResult[] = [];
+        const results: (OCRResult | MistralOCRResult)[] = [];
         
-        // 使用增强 OCR
-        toast.info("使用内置 OCR 引擎识别...", {
-          description: "正在处理图片中的文字和数学公式"
-        });
+        // 检查是否配置了 Mistral.ai
+        const useMistral = MistralOCR.isConfigured();
         
-        const enhancedOCR = new EnhancedOCR();
-        
-        for (let i = 0; i < uploadedImages.length; i++) {
-          const file = uploadedImages[i];
-          toast.info(`正在处理第 ${i + 1} 张图片...`, {
-            description: `文件：${file.name}`,
+        if (useMistral) {
+          toast.info("使用 Mistral.ai 高精度识别...", {
+            description: "正在处理图片中的文字和数学公式"
           });
           
-          try {
-            const result = await enhancedOCR.processImage(file);
-            results.push(result);
-            
-            const historyItem = await addImageToHistory(file, result, undefined, selectedSubject, questionTypeExample);
-            imageHistoryItems.push(historyItem);
-          } catch (err) {
-            console.error(`处理图片 ${file.name} 失败:`, err);
-            toast.error(`处理图片 ${file.name} 失败`, {
-              description: "请检查图片质量或稍后重试。",
+          const mistralOCR = new MistralOCR();
+          
+          for (let i = 0; i < uploadedImages.length; i++) {
+            const file = uploadedImages[i];
+            toast.info(`正在处理第 ${i + 1} 张图片...`, {
+              description: `文件：${file.name} (Mistral.ai)`,
             });
+            
+            try {
+              const result = await mistralOCR.processImage(file);
+              results.push(result);
+              
+              const historyItem = await addImageToHistory(file, result, undefined, selectedSubject, questionTypeExample);
+              imageHistoryItems.push(historyItem);
+            } catch (err) {
+              console.error(`Mistral.ai 处理图片 ${file.name} 失败:`, err);
+              toast.error(`Mistral.ai 处理图片 ${file.name} 失败`, {
+                description: "将使用内置 OCR 引擎重试。",
+              });
+              
+              // fallback 到内置 OCR
+              try {
+                const enhancedOCR = new EnhancedOCR();
+                const fallbackResult = await enhancedOCR.processImage(file);
+                results.push(fallbackResult);
+                enhancedOCR.destroy();
+                
+                const historyItem = await addImageToHistory(file, fallbackResult, undefined, selectedSubject, questionTypeExample);
+                imageHistoryItems.push(historyItem);
+              } catch (fallbackErr) {
+                console.error(`内置 OCR 处理图片 ${file.name} 也失败:`, fallbackErr);
+                toast.error(`处理图片 ${file.name} 失败`, {
+                  description: "请检查图片质量或稍后重试。",
+                });
+              }
+            }
           }
+        } else {
+          // 使用增强 OCR
+          toast.info("使用内置 OCR 引擎识别...", {
+            description: "正在处理图片中的文字和数学公式"
+          });
+          
+          const enhancedOCR = new EnhancedOCR();
+          
+          for (let i = 0; i < uploadedImages.length; i++) {
+            const file = uploadedImages[i];
+            toast.info(`正在处理第 ${i + 1} 张图片...`, {
+              description: `文件：${file.name}`,
+            });
+            
+            try {
+              const result = await enhancedOCR.processImage(file);
+              results.push(result);
+              
+              const historyItem = await addImageToHistory(file, result, undefined, selectedSubject, questionTypeExample);
+              imageHistoryItems.push(historyItem);
+            } catch (err) {
+              console.error(`处理图片 ${file.name} 失败:`, err);
+              toast.error(`处理图片 ${file.name} 失败`, {
+                description: "请检查图片质量或稍后重试。",
+              });
+            }
+          }
+          
+          enhancedOCR.destroy();
         }
-        
-        enhancedOCR.destroy();
         
         setOcrResults(results);
         
@@ -95,8 +143,9 @@ const Index = () => {
         
         if (results.length > 0) {
           const avgConfidence = results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
+          const engineName = useMistral ? 'Mistral.ai' : '内置OCR';
           toast.success(`成功识别 ${results.length} 张图片`, {
-            description: `平均置信度: ${avgConfidence.toFixed(1)}% (内置OCR)`,
+            description: `平均置信度: ${avgConfidence.toFixed(1)}% (${engineName})`,
           });
         }
       }
@@ -186,7 +235,7 @@ const Index = () => {
   return (
     <div className="h-screen w-full bg-background bg-grid text-foreground flex flex-col">
       <header className="w-full flex justify-between items-center p-4 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-        <h1 className="text-xl font-bold text-primary">题型分析器</h1>
+        <h1 className="text-xl font-bold text-primary">智能试题结构识别</h1>
         <a 
           href="https://github.com/lovable-dev/c5fe2474-d81b-4c79-850f-89431dfc1704" 
           target="_blank" 
@@ -201,11 +250,8 @@ const Index = () => {
         <div className="h-full flex">
           {/* 左侧：输入和分析区域 */}
           <div className="flex-1 flex flex-col p-4 overflow-y-auto">
-            <div className="text-center mb-6">
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-500 py-2">
-                智能试题结构识别
-              </h2>
-              <p className="mt-3 text-base text-muted-foreground">
+            <div className="text-left mb-6">
+              <p className="text-base text-muted-foreground">
                 粘贴试题文本或上传图片，即刻获得结构化分析。支持数学、物理、化学、语文、英语等学科的多种题型识别。
               </p>
             </div>
@@ -218,6 +264,11 @@ const Index = () => {
                 questionTypeExample={questionTypeExample}
                 onQuestionTypeExampleChange={setQuestionTypeExample}
               />
+
+              {/* Mistral.ai OCR 配置 */}
+              <div className="flex justify-end">
+                <MistralConfig />
+              </div>
 
               <QuestionInput
                 value={inputText}
@@ -237,16 +288,21 @@ const Index = () => {
                 <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border">
                   <h3 className="font-semibold mb-2 text-sm">图片 OCR 处理详情</h3>
                   <div className="space-y-3">
-                    {ocrResults.map((result, index) => (
-                      <div key={index} className="text-xs space-y-1 text-muted-foreground border-l-2 border-blue-200 pl-3">
-                        <div className="font-medium">图片 {index + 1} (内置OCR):</div>
-                        <div>OCR 置信度: {result.confidence.toFixed(1)}%</div>
-                        <div>处理时间: {result.processingTime}ms</div>
-                        <div>检测学科: {result.classification.subject}</div>
-                        <div>题型: {result.classification.questionType}</div>
-                        <div>分类置信度: {(result.classification.confidence * 100).toFixed(1)}%</div>
-                      </div>
-                    ))}
+                    {ocrResults.map((result, index) => {
+                      const isMistral = !('classification' in result && 'features' in result.classification);
+                      const engineName = isMistral ? 'Mistral.ai' : '内置OCR';
+                      
+                      return (
+                        <div key={index} className="text-xs space-y-1 text-muted-foreground border-l-2 border-blue-200 pl-3">
+                          <div className="font-medium">图片 {index + 1} ({engineName}):</div>
+                          <div>OCR 置信度: {result.confidence.toFixed(1)}%</div>
+                          <div>处理时间: {result.processingTime}ms</div>
+                          <div>检测学科: {result.classification.subject}</div>
+                          <div>题型: {result.classification.questionType}</div>
+                          <div>分类置信度: {(result.classification.confidence * 100).toFixed(1)}%</div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
