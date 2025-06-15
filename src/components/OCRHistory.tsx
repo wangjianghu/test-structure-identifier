@@ -22,7 +22,7 @@ const ITEMS_PER_PAGE = 10;
 
 export function OCRHistory({ history, onRemoveItem, onExport, onClear }: OCRHistoryProps) {
   const [currentPage, setCurrentPage] = useState(1);
-  const [viewMode, setViewMode<'cards' | 'table'>('cards');
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
 
   const totalPages = Math.ceil(history.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
