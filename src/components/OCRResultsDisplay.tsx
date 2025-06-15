@@ -69,7 +69,7 @@ export function OCRResultsDisplay({ ocrResults }: OCRResultsDisplayProps) {
               <div>分类置信度: {result.classification ? (result.classification.confidence * 100).toFixed(1) : 0}%</div>
               
               {/* 显示增强OCR v3的特殊指标 */}
-              {isEnhancedV3 && 'advancedMetrics' in result && (
+              {isEnhancedV3 && 'advancedMetrics' in result && result.advancedMetrics && 'mathSymbolsDetected' in result.advancedMetrics && (
                 <div className="mt-2 pt-2 border-t border-gray-200">
                   <div className="font-medium text-purple-600">数学专用算法指标:</div>
                   <div>文字区域检测: {result.advancedMetrics.textRegionsDetected} 个</div>
@@ -84,7 +84,7 @@ export function OCRResultsDisplay({ ocrResults }: OCRResultsDisplayProps) {
               )}
               
               {/* 显示增强OCR v2的特殊指标 */}
-              {isEnhancedV2 && 'advancedMetrics' in result && !isEnhancedV3 && (
+              {isEnhancedV2 && 'advancedMetrics' in result && result.advancedMetrics && !('mathSymbolsDetected' in result.advancedMetrics) && (
                 <div className="mt-2 pt-2 border-t border-gray-200">
                   <div className="font-medium text-blue-600">增强算法指标:</div>
                   <div>文字区域检测: {result.advancedMetrics.textRegionsDetected} 个</div>
